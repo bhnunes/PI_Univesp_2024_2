@@ -1,0 +1,18 @@
+Desenvolver um software com framework web que utilize banco de dados, inclua script web
+(Javascript), nuvem, uso de API, acessibilidade, controle de versão e testes. Opcionalmente, incluir análise de dados.
+
+Ideia:
+
+- Uma aplicação WEB que possibilite comparar se um currículo está em um bom formato ou não para uma aplicação para vaga.
+
+Cenário:
+
+- Verificar se é possível importar o arquivo. Se sim, checar se não existem caracteres que não são textuais.
+
+- Verificar gramática e semântica.
+
+- Analisar a descrição da vaga. Extrair as palavras-chave usando GPT.
+
+- Verificar se há match entre as palavras-chave do currículo e da oferta de vaga.
+
+- Mostrar um percentual de match. 

@@ -1,0 +1,15 @@
+Frontend:
+Precisa ser no formato word/pdf
+
+Backend:
+Precisa importar
+Não pode ter fotos
+Precisa ter email/telefone
+Não pode ter mais de duas páginas
+
+
+API:
+Erros de português
+Análise de palavras-chave
+
+
