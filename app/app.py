@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import fitz  # PyMuPDF for PDF handling
 from langdetect import detect
-from pdf2image import convert_from_path
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
@@ -34,19 +35,31 @@ def is_portuguese(text):
     except:
         return False
 
+def calculate_similarity(resume_text, job_description):
+    """Calculate cosine similarity between resume text and job description."""
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
+    similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+    return similarity_score
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
 @app.route('/upload', methods=['POST'])
 def upload_resume():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+    if 'file' not in request.files or 'job_description' not in request.form:
+        return jsonify({"error": "File or job description missing"}), 400
     
     file = request.files['file']
+    job_description = request.form['job_description']
     
     # Save the file temporarily
     file_path = "/tmp/" + file.filename
     file.save(file_path)
     
     # Step 1: Convert PDF to text
-    text = pdf_to_text(file_path)
+    resume_text = pdf_to_text(file_path)
     
     # Step 2: Check page count
     if has_more_than_two_pages(file_path):
@@ -57,11 +70,18 @@ def upload_resume():
         return jsonify({"result": "Rejected", "reason": "Resume contains a photo"}), 400
     
     # Step 4: Check language
-    if not is_portuguese(text):
+    if not is_portuguese(resume_text):
         return jsonify({"result": "Rejected", "reason": "Resume is not in Portuguese"}), 400
     
+    # Step 5: Calculate similarity score with job description
+    similarity_score = calculate_similarity(resume_text, job_description)
+    
     # If all checks pass
-    return jsonify({"result": "Accepted", "reason": "Resume meets all criteria"}), 200
+    return jsonify({
+        "result": "Accepted",
+        "reason": "Resume meets all criteria",
+        "similarity_score": round(similarity_score * 100, 2)  # Return score as a percentage
+    }), 200
 
-if __name__ == '_main_':
+if __name__== '_main_':
     app.run(debug=True)

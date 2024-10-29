@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+    .container {
+      width: 400px;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      text-align: center;
+    }
+    h2 {
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #aaa;
+    }
+    #result {
+      margin-top: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Resume Analysis</h2>
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <textarea id="jobDescription" placeholder="Enter the job position description..."></textarea>
+    <button onclick="runAnalysis()">Run Analysis</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function runAnalysis() {
+      const pdfFile = document.getElementById('pdfFile').files[0];
+      const jobDescription = document.getElementById('jobDescription').value;
+      const resultDiv = document.getElementById('result');
+
+      if (!pdfFile || !jobDescription) {
+        resultDiv.innerHTML = "<p style='color: red;'>Please upload a PDF and enter a job description.</p>";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      formData.append('job_description', jobDescription);
+
+      resultDiv.innerHTML = "Analyzing...";
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          resultDiv.innerHTML = <p style="color: green;">${result.result}: ${result.reason}</p>;
+        } else {
+          resultDiv.innerHTML = <p style="color: red;">${result.result}: ${result.reason}</p>;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = "<p style='color: red;'>Error during analysis. Please try again.</p>";
+      }
+    }
+  </script>
+</body>
+</html>
