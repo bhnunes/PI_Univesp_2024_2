@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Dicas para um CV Imbatível{% endblock %}
+
+{% block content %}
+<section class="dicas py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">10 Dicas Essenciais para um CV de Sucesso</h2>
+        <div id="dicasCarousel" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">
+
+                <!-- Dicas 1 e 2 -->
+                <div class="carousel-item active">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/01.png') }}" class="card-img-top" alt="Dica 1">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 1: Use uma Linguagem Concisa e Objetiva</h5>
+                                    <p class="card-text">Seja objetivo e mantenha seu currículo focado na posição específica para a qual está se candidatando. Destaque suas habilidades e experiências que mais correspondem aos requisitos da vaga.
+
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/02.png') }}" class="card-img-top" alt="Dica 2">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 2: Utilize Verbos de Ação</h5>
+                                    <p class="card-text">Utilize um formato limpo e de fácil leitura. Divida o currículo em seções bem definidas, usando títulos, marcadores e/ou numeração para facilitar a leitura. Isso transmite profissionalismo.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dicas 3 e 4 -->
+                <div class="carousel-item">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/03.png') }}" class="card-img-top" alt="Dica 3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 3: Formato Limpo e Organizado:</h5>
+                                    <p class="card-text">Atualize seu currículo frequentemente e evite incluir informações desnecessárias. Lembre-se de que um currículo objetivo e conciso, com uma ou duas páginas no máximo, é mais eficaz e direto.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/04.png') }}" class="card-img-top" alt="Dica 4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 4: Atualizado e Conciso</h5>
+                                    <p class="card-text">Revise seu currículo várias vezes, pois erros de gramática ou ortografia podem prejudicar a sua imagem profissional. Uma boa revisão evita possíveis erros que possam passar uma impressão negativa.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dicas 5 e 6 -->
+                <div class="carousel-item">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/05.png') }}" class="card-img-top" alt="Dica 5">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 5: Dados Pessoais Essenciais:</h5>
+                                    <p class="card-text">Inclua sempre suas informações de contato atualizadas, como telefone e e-mail. Não é necessário incluir número de documentos ou o endereço residencial completo, apenas dados essenciais de contato.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/06.png') }}" class="card-img-top" alt="Dica 6">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 6: Resumo Profissional</h5>
+                                    <p class="card-text">Comece o currículo com um resumo profissional ou objetivo de carreira. Essa introdução deve destacar suas principais habilidades e aspirações, dando ao recrutador uma visão rápida do seu perfil.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dicas 7 e 8 -->
+                <div class="carousel-item">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/07.png') }}" class="card-img-top" alt="Dica 7">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 7: Experiência de Trabalho:</h5>
+                                    <p class="card-text">Liste as experiências de trabalho mais relevantes, iniciando pela mais recente. Use verbos de ação e, sempre que possível, quantifique suas conquistas para mostrar seu impacto em cargos anteriores.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/08.png') }}" class="card-img-top" alt="Dica 8">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 8: Educação e Formação</h5>
+                                    <p class="card-text">Liste sua formação acadêmica em ordem cronológica inversa, começando pelo curso mais recente. Inclua o nome da instituição, o grau obtido e o ano de conclusão para facilitar a leitura.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dicas 9 e 10 -->
+                <div class="carousel-item">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/09.png') }}" class="card-img-top" alt="Dica 9">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 9: Habilidades Relevantes:</h5>
+                                    <p class="card-text">Adicione uma seção de habilidades que enfatize competências relevantes para o cargo. Incluia habilidades técnicas, linguísticas e interpessoais que tenham relação com a vaga.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/10.png') }}" class="card-img-top" alt="Dica 10">
+                                <div class="card-body">
+                                    <h5 class="card-title">Dica 10: Adaptação para cada vaga</h5>
+                                    <p class="card-text">Personalize seu currículo para cada vaga a que se candidata. Use palavras-chave do anúncio da vaga e mostre claramente como suas habilidades e experiências atendem aos requisitos especificados.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a class="carousel-control-prev" href="#dicasCarousel" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Previous</span>
+                </a>
+                <a class="carousel-control-next" href="#dicasCarousel" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Next</span>
+                </a>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %} 
