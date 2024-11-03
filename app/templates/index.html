@@ -1,101 +1,59 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resume Analysis</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #f4f4f9;
-    }
-    .container {
-      width: 400px;
-      padding: 20px;
-      background-color: #fff;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      border-radius: 8px;
-      text-align: center;
-    }
-    h2 {
-      color: #333;
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-      margin: 10px 0;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      resize: vertical;
-    }
-    input[type="file"] {
-      margin: 10px 0;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #aaa;
-    }
-    #result {
-      margin-top: 20px;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Resume Analysis</h2>
-    <input type="file" id="pdfFile" accept="application/pdf">
-    <textarea id="jobDescription" placeholder="Enter the job position description..."></textarea>
-    <button onclick="runAnalysis()">Run Analysis</button>
-    <div id="result"></div>
-  </div>
+{% extends "base.html" %}
 
-  <script>
-    async function runAnalysis() {
-      const pdfFile = document.getElementById('pdfFile').files[0];
-      const jobDescription = document.getElementById('jobDescription').value;
-      const resultDiv = document.getElementById('result');
+{% block title %}🏆Ajuda meu CV🏆 - Crie um CV que Impressione{% endblock %}
 
-      if (!pdfFile || !jobDescription) {
-        resultDiv.innerHTML = "<p style='color: red;'>Please upload a PDF and enter a job description.</p>";
-        return;
-      }
+{% block content %}
+<header class="masthead">
+    <div class="container h-100">
+        <div class="row h-100 align-items-center">
+            <div class="col-12 text-center">
+                <h1 class="font-weight-bold">🏆 Ajuda meu CV 🏆</h1>
+                <p class="lead">Seu guia para um CV impecável que te leva ao próximo nível.</p>
+            </div>
+        </div>
+    </div>
+</header>
 
-      const formData = new FormData();
-      formData.append('file', pdfFile);
-      formData.append('job_description', jobDescription);
+<section class="features py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Por que escolher o Ajuda meu CV?</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Análise Profissional</h5>
+                        <i class="fas fa-file-alt fa-2x"></i>
+                        <p class="card-text">Analisamos seu CV com inteligência artificial e te damos um feedback preciso e detalhado.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Dicas Incriveis</h5>
+                        <i class="fas fa-lightbulb fa-2x"></i>
+                        <p class="card-text">Acesse dicas e modelos de CV para turbinar sua candidatura e se destacar da multidão.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Impulsione sua Carreira</h5>
+                        <i class="fas fa-rocket fa-2x"></i>
+                        <p class="card-text">Aumente suas chances de sucesso com um CV que realmente chama atenção dos recrutadores.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-      resultDiv.innerHTML = "Analyzing...";
-
-      try {
-        const response = await fetch('/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-          resultDiv.innerHTML = <p style="color: green;">${result.result}: ${result.reason}</p>;
-        } else {
-          resultDiv.innerHTML = <p style="color: red;">${result.result}: ${result.reason}</p>;
-        }
-      } catch (error) {
-        resultDiv.innerHTML = "<p style='color: red;'>Error during analysis. Please try again.</p>";
-      }
-    }
-  </script>
-</body>
-</html>
+<section class="call-to-action py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-4">Comece agora mesmo!</h2>
+        <p class="text-center">Crie um CV que te leva mais perto dos seus sonhos.</p>
+        <div class="d-flex justify-content-center mt-4"> <a href="/validar" class="btn btn-lg btn-primary">Analisar meu CV agora!</a></div>
+    </div>
+</section>
+{% endblock %}

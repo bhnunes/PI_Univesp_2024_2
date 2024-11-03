@@ -1,10 +1,26 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import fitz  # PyMuPDF for PDF handling
 from langdetect import detect
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+import shutil
 
 app = Flask(__name__)
+
+# Configura a pasta temporária
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Cria a pasta se não existir
+
+def restart():
+    uploads_path = os.path.join(app.root_path, 'uploads')
+    if os.path.exists(uploads_path):
+        shutil.rmtree(uploads_path)
+        os.makedirs(uploads_path, exist_ok=True)
+    return None
+
 
 def pdf_to_text(file_path):
     """Extract text from PDF."""
@@ -44,7 +60,8 @@ def calculate_similarity(resume_text, job_description):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    current_year = datetime.now().year  # Get the current year
+    return render_template('index.html', current_year=current_year)
 
 @app.route('/upload', methods=['POST'])
 def upload_resume():
@@ -54,8 +71,9 @@ def upload_resume():
     file = request.files['file']
     job_description = request.form['job_description']
     
-    # Save the file temporarily
-    file_path = "/tmp/" + file.filename
+    # Salva o arquivo na pasta temporária
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
     
     # Step 1: Convert PDF to text
@@ -75,6 +93,8 @@ def upload_resume():
     
     # Step 5: Calculate similarity score with job description
     similarity_score = calculate_similarity(resume_text, job_description)
+
+    restart()
     
     # If all checks pass
     return jsonify({
@@ -82,6 +102,28 @@ def upload_resume():
         "reason": "Resume meets all criteria",
         "similarity_score": round(similarity_score * 100, 2)  # Return score as a percentage
     }), 200
+
+@app.route('/dicas')
+def dicas():
+    current_year = datetime.now().year  # Get the current year
+    return render_template('dicas.html', current_year=current_year)
+
+@app.route('/validar')
+def validar():
+    current_year = datetime.now().year  # Get the current year
+    return render_template('validar.html', current_year=current_year)
+
+
+@app.route('/modelo')
+def modelo():
+    current_year = datetime.now().year  # Get the current year
+    return render_template('modelo.html', current_year=current_year)
+
+
+# Rotas para download dos modelos
+@app.route('/download/<nome_arquivo>')
+def download_modelo(nome_arquivo):
+    return send_from_directory('static/modelos_CV', nome_arquivo, as_attachment=True)
 
 if __name__== '_main_':
     app.run(debug=True)

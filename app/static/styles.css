@@ -1,0 +1,160 @@
+
+body, html {
+    font-family: 'Open Sans', sans-serif; /* Fonte mais moderna */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9; 
+    padding-top: 60px;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px; 
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    text-align: center;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    color: #333;
+}
+
+.btn {
+    background-color: #4CAF50; /* Verde vibrante */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #45a049; /* Verde mais escuro */
+}
+
+.features {
+    padding: 50px 0;
+    text-align: center;
+}
+
+.card {
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-img-top {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.card-body {
+    padding: 15px;
+}
+
+.card-title {
+    font-weight: bold;
+    color: #333;
+}
+
+.card-text {
+    color: #555;
+}
+
+.row {
+    margin-bottom: 20px;
+}
+
+.col-md-4 {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.call-to-action {
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 50px 0;
+    text-align: center;
+}
+
+footer {
+    background-color: #333;
+    color: #fff;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.github-link {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.2em;
+    margin-left: 10px;
+    transition: color 0.3s ease;
+}
+
+.github-link:hover {
+    color: #4CAF50;
+}
+
+/* Estilos para o Carousel */
+.carousel-item {
+    /* Adicione estilos para o conteúdo do carousel */
+}
+
+/* Estilos para o Formulário */
+#pdfFile, 
+#jobDescription {
+    margin-bottom: 10px;
+}
+
+#result {
+    margin-top: 20px;
+    color: #333;
+}
+
+/* Responsividade */
+@media screen and (max-width: 768px) {
+    .col-md-4 {
+        flex: 0 0 100%;
+    }
+}
+
+/* Estilos do Header */
+.masthead {
+    background-color: #4CAF50; 
+    color: #fff;
+    padding: 50px 0;
+    text-align: center;
+}
+
+.masthead h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.masthead p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+/* Estilos do Navbar */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* Estilos do Footer */
+.footer {
+    position: relative; 
+    bottom: 0;
+    width: 100%;
+    background-color: #f5f5f5; 
+    padding: 10px 0;
+}
