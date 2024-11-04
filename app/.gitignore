@@ -1,0 +1,64 @@
+# Diretórios padrão do Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Arquivos de configuração do Flask
+config.py
+instance/
+
+# Arquivos de cache, logs e sessões
+*.log
+*.cache
+*.session
+
+# Arquivos de banco de dados (ajuste conforme necessário)
+db.sqlite
+*.db
+
+# Arquivos temporários
+/tmp/
+
+# Arquivos gerados pelo IDE
+.idea/
+.vscode/
+
+# Arquivos de teste
+tests/
+
+# Arquivos específicos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de compilação
+*.o
+*.so
+*.dll
+
+# Arquivos de configuração do sistema
+.env
+.env.*
+.venv/
+venv/
+
+# Arquivos de desenvolvimento
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Dependências
+/node_modules/
+
+# Arquivos do frontend
+/static/build/
+/static/dist/
+
+# Arquivos gerados por ferramentas
+.sass-cache/
+.vuepress/
+
+# Arquivos do editor
+.editorconfig

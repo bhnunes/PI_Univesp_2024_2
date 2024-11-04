@@ -7,8 +7,23 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import shutil
+import re
+import requests
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+api_key = os.getenv('API_KEY')
+
+if api_key:
+    print(f"Chave API: {api_key}")
+else:
+    print("Chave API não encontrada no arquivo .env.")
 
 app = Flask(__name__)
+
+APY_KEY=api_key
 
 # Configura a pasta temporária
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
@@ -51,6 +66,58 @@ def is_portuguese(text):
     except:
         return False
 
+def check_personalinfo(text):
+    phone_pattern = r'\s*\(\d{2}\)\s*\d{5}-\d{4}'
+    email_pattern = r'\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    linkedin_pattern= r'(?:\/\/(?:www|m)\.)?(?:linkedin\.com|linked-in\.co\.uk)(?:\/in\/)[a-zA-Z0-9-]+'
+    github_pattern = r'(?:\/\/(?:www\.)?github\.com|github\.io)\/[A-Za-z0-9-]+'
+    phone = re.search(phone_pattern, text)
+    email = re.search(email_pattern, text)
+    linkedin = re.search(linkedin_pattern, text)
+    github = re.search(github_pattern, text)
+    if (phone is not None) or (email is not None) or (linkedin is not None) or (github is not None) :
+        return True 
+    else:
+        return False 
+
+
+def check_portuguese_errors(text):
+    """Verifica erros gramaticais em um texto em português utilizando a API do Gemini.
+
+    Args:
+        text (str): O texto a ser verificado.
+
+    Returns:
+        dict: Um dicionário JSON contendo uma lista de erros encontrados, caso existam.
+    """
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [
+            {"parts": [{"text": f"Analise o seguinte texto em português e me retorne em formato JSON uma lista de termos que possuem erros gramaticais, incluindo sugestões de correção. Caso o texto não tenha erros, retorne uma lista vazia. \n\n**Texto:** {text}\n\n**Formato JSON:** {{'errors': [{{'term': 'termo_com_erro', 'corrections': ['correção1', 'correção2'], 'message': 'Mensagem sobre o erro (opcional).'}}]}}\n```"}]}
+        ]
+    }
+
+    response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
+    print(response.text)
+
+    if response.status_code == 200:
+        try:
+            result = response.json()
+            results=result["candidates"][0]["content"]['parts'][0]["text"]
+            results=str(results).replace("```json","")
+            results=results.replace("```","")
+            result = json.loads(results)
+            return result["errors"]
+        except (KeyError, IndexError):
+            print("Erro ao processar a resposta do Gemini.")
+            return {"errors": []}
+    else:
+        print(f"Erro ao comunicar com o Gemini: {response.status_code}")
+        return {"errors": []}
+
+
 def calculate_similarity(resume_text, job_description):
     """Calculate cosine similarity between resume text and job description."""
     vectorizer = TfidfVectorizer()
@@ -91,8 +158,18 @@ def upload_resume():
     if not is_portuguese(resume_text):
         return jsonify({"result": "Rejected", "reason": "Resume is not in Portuguese"}), 400
     
-    # Step 5: Calculate similarity score with job description
+    # Step 5: Personal ID
+    if not check_personalinfo(resume_text):
+        return jsonify({"result": "Rejected", "reason": "Resume Has no Email or Phone Number or Linkedin or Github for contact"}), 400
+    
+    # Verifica erros de português
+    errors = check_portuguese_errors(resume_text)
+    if errors:
+        return jsonify({"result": "Rejected", "reason": "Resume contains Portuguese grammar errors", "errors": errors}), 400
+
+    # Step 6: Calculate similarity score with job description
     similarity_score = calculate_similarity(resume_text, job_description)
+
 
     restart()
     
