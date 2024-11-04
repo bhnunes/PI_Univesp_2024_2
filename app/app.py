@@ -10,10 +10,20 @@ import shutil
 import re
 import requests
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+api_key = os.getenv('API_KEY')
+
+if api_key:
+    print(f"Chave API: {api_key}")
+else:
+    print("Chave API não encontrada no arquivo .env.")
 
 app = Flask(__name__)
 
-APY_KEY="AIzaSyBp_QmBmMIouAnL2NCiTWnVt100zUNYJ7E"
+APY_KEY=api_key
 
 # Configura a pasta temporária
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
