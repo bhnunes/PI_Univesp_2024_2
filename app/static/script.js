@@ -37,12 +37,28 @@ async function runAnalysis() {
             };
         } else {
             resultDiv.innerHTML = `<p style="color: red;">${result.result}: ${result.reason}</p>`;
-            analiseButton.textContent = 'Analisar'; // Reverte o texto do botão
+            if (result.errors) { // Verifica se há erros
+                resultDiv.innerHTML += "<ul>";
+                for (const error of result.errors) {
+                    resultDiv.innerHTML += `<li><strong>Termo:</strong> ${error.term}</li>`;
+                    resultDiv.innerHTML += `<li><strong>Correções:</strong> ${error.corrections.join(', ')}</li>`;
+                    resultDiv.innerHTML += `<li><strong>Mensagem:</strong> ${error.message}</li>`;
+                    resultDiv.innerHTML += "<hr>"; // Adiciona uma linha horizontal para separar os erros
+                }
+                resultDiv.innerHTML += "</ul>";
+            }
+            analiseButton.textContent = 'Recarregar'; // Reverte o texto do botão
             analiseButton.disabled = false; // Reativa o botão
+            analiseButton.onclick = function() {
+                location.reload(); // Recarrega a página quando o botão é clicado
+            };
         }
     } catch (error) {
         resultDiv.innerHTML = "<p style='color: red;'>Erro durante a análise. Por favor, tente novamente.</p>";
-        analiseButton.textContent = 'Analisar'; // Reverte o texto do botão
+        analiseButton.textContent = 'Recarregar'; // Reverte o texto do botão
         analiseButton.disabled = false; // Reativa o botão
+        analiseButton.onclick = function() {
+            location.reload(); // Recarrega a página quando o botão é clicado
+        };
     }
 }
