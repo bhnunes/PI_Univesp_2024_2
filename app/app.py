@@ -12,16 +12,11 @@ import requests
 import json
 from dotenv import load_dotenv
 
+app = Flask(__name__)
+
 load_dotenv()
 
 api_key = os.getenv('API_KEY')
-
-if api_key:
-    print(f"Chave API: {api_key}")
-else:
-    print("Chave API não encontrada no arquivo .env.")
-
-app = Flask(__name__)
 
 APY_KEY=api_key
 
@@ -82,14 +77,6 @@ def check_personalinfo(text):
 
 
 def check_portuguese_errors(text):
-    """Verifica erros gramaticais em um texto em português utilizando a API do Gemini.
-
-    Args:
-        text (str): O texto a ser verificado.
-
-    Returns:
-        dict: Um dicionário JSON contendo uma lista de erros encontrados, caso existam.
-    """
 
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
