@@ -11,6 +11,10 @@ import re
 import requests
 import json
 from dotenv import load_dotenv
+from docx import Document
+import io  # For handling in-memory file objects
+from docx.oxml.shared import OxmlElement
+from docx.oxml.ns import qn
 
 app = Flask(__name__)
 
@@ -40,19 +44,54 @@ def pdf_to_text(file_path):
             text += page.get_text()
     return text
 
+
+def docx_to_text(file_path):
+    """Extract text from DOCX."""
+    doc = Document(file_path)
+    text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+    return text
+
+def txt_to_text(file_path):
+    """Extract text from TXT."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    return text
+
 def has_more_than_two_pages(file_path):
-    """Check if PDF has more than 2 pages."""
-    with fitz.open(file_path) as pdf:
-        return pdf.page_count > 2
+    """Check if a file has more than 2 pages (PDF) or a certain character limit (TXT)."""
+    extension = os.path.splitext(file_path)[1].lower()
+    if extension == '.pdf':
+        with fitz.open(file_path) as pdf:
+            return pdf.page_count > 2
+    elif extension == '.docx':
+        doc = Document(file_path)
+        return len(doc.paragraphs) > 75
+    elif extension == '.txt':
+        with open(file_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+            return len(text) > 5000  # Verifica se o arquivo TXT tem mais de 10k caracteres
+    else:
+        return False
 
 def contains_image(file_path):
-    """Check if PDF contains images."""
-    with fitz.open(file_path) as pdf:
-        for page_num in range(pdf.page_count):
-            page = pdf.load_page(page_num)
-            if len(page.get_images(full=True)) > 0:
-                return True
-    return False
+    """Check if PDF or DOCX contains images."""
+    extension = os.path.splitext(file_path)[1].lower()
+    if extension == '.pdf':
+        with fitz.open(file_path) as pdf:
+            for page_num in range(pdf.page_count):
+                page = pdf.load_page(page_num)
+                if len(page.get_images(full=True)) > 0:
+                    return True
+        return False
+    elif extension == '.docx':
+        doc = Document(file_path)
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                if run._element.xml.find(qn('w:drawing')) is not None:
+                    return True
+        return False
+    else:
+        return False
 
 def is_portuguese(text):
     """Check if the text is in Portuguese."""
@@ -77,7 +116,6 @@ def check_personalinfo(text):
 
 
 def check_portuguese_errors(text):
-
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
     data = {
@@ -124,15 +162,26 @@ def upload_resume():
     
     file = request.files['file']
     job_description = request.form['job_description']
-    
+
     # Salva o arquivo na pasta temporária
     filename = secure_filename(file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
     
-    # Step 1: Convert PDF to text
-    resume_text = pdf_to_text(file_path)
+    # Verifica a extensão do arquivo
+    extension = os.path.splitext(filename)[1].lower()
     
+    # Lê o conteúdo do arquivo de acordo com a extensão
+    if extension == '.pdf':
+        resume_text = pdf_to_text(file_path)
+    elif extension == '.docx':
+        resume_text = docx_to_text(file_path)
+    elif extension == '.txt':
+        resume_text = txt_to_text(file_path)
+    else:
+        restart()
+        return jsonify({"result": "Rejected", "reason": "Invalid file format. Please upload a PDF, DOCX, or TXT file."}), 400
+
     # Step 2: Check page count
     if has_more_than_two_pages(file_path):
         return jsonify({"result": "Rejected", "reason": "Resume has more than 2 pages"}), 400
