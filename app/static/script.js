@@ -27,7 +27,11 @@ async function runAnalysis() {
         const result = await response.json();
         if (response.ok) {
             resultDiv.innerHTML = `<p style="color: green;">${result.result}: ${result.reason}</p>`;
-            resultDiv.innerHTML += `<p style="color: green;">Percentual de Match: ${result.similarity_score}%</p>`;
+            resultDiv.innerHTML += `<p style="color: green;">Percentual de Match Textual: ${result.similarity_score}%</p>`;
+            resultDiv.innerHTML += `<p style="color: green;">Percentual de Match Contextual: ${result.keywords_matching}%</p>`;
+            if (result.keywords_matching.length !== 0) {
+                resultDiv.innerHTML += `<p style="color: green;">Adicione o(s) seguinte(s) termo(s) ao seu Currículo: ${result.keywords_missing}</p>`;
+            }
 
             // Após a análise, muda o botão para 'Recarregar' e habilita
             analiseButton.textContent = 'Recarregar';

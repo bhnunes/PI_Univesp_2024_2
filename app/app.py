@@ -173,6 +173,68 @@ def validateReturnGemini(errors):
     return valid_items
 
 
+
+def check_keywords(job_description):
+    job_description=str(job_description)
+    job_description=job_description.upper()
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "contents": [
+            {"parts": [{"text": f"Extraia as palavras-chave relevantes de um **Texto:** de descrição de vaga, focando em habilidades técnicas, comportamentais e experiências profissionais. As palavras-chave devem se referir a:* **Habilidades técnicas:**  Linguagens de programação, frameworks, ferramentas, softwares, plataformas.* **Habilidades comportamentais:**  Adjetivos que descrevem características desejáveis como comunicação, trabalho em equipe, proatividade, criatividade etc.* **Experiência profissional:**  Verbos que indicam ações realizadas como 'desenvolver', 'implementar', 'integrar', 'configurar', 'gerenciar', etc.Apresente as palavras-chave em formato JSON, com a chave 'palavras_chaves' e uma lista com as palavras-chave.**Texto:** {job_description}**Formato JSON:** {{'palavras_chaves': []}}"}]}
+        ]
+    }
+    
+    passed=False
+    attempts = 0
+    max_attempts = 3
+    while attempts < max_attempts:
+        attempts += 1
+        response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
+        print(f"Tentativa {attempts} para keywords")
+
+        if response.status_code == 200:
+            try:
+                result = response.json()
+                results = result["candidates"][0]["content"]['parts'][0]["text"]
+                results = str(results).replace("```json", "")
+                results = results.replace("```", "")
+                result = json.loads(results)
+                passed=True
+                return result["palavras_chaves"], passed  # Retorna a lista de erros se o formato estiver correto
+            except (KeyError, IndexError, json.JSONDecodeError):
+                print(f"Formato JSON inválido na tentativa {attempts}. Tentando novamente...")
+                continue  # Tenta novamente se o formato estiver incorreto
+        else:
+            print(f"Erro ao comunicar com o Gemini: {response.status_code}")
+            return {"errors": []}, passed  # Retorna uma lista vazia em caso de erro na comunicação com o Gemini
+
+    print(f"Tentativas esgotadas. Falha ao obter o formato JSON correto.")
+    return {"errors": []}, passed  # Retorna uma lista vazia se as tentativas esgotarem
+
+def match_keywords_with_resume(job_description, keywords):
+    keywords=list(keywords[0])
+    counter=0
+    keywords_missing=""
+    list_keywords_missing=[]
+    uppered_list=list()
+    job_description=str(job_description).upper()
+    for keyword in keywords:
+        uppered_list.append(str(keyword).upper())
+    for keyword in uppered_list:
+        if keyword in job_description:
+            counter=counter+1
+        else:
+            list_keywords_missing.append(keyword)
+    score=counter/len(keywords)
+    if len(list_keywords_missing)!=0:
+        keywords_missing = ', '.join(list_keywords_missing)
+        if len(list_keywords_missing)==1:
+            keywords_missing=keywords_missing[:-1]
+    return score, keywords_missing
+
+
 def calculate_similarity(resume_text, job_description):
     """Calculate cosine similarity between resume text and job description."""
     vectorizer = TfidfVectorizer()
@@ -236,6 +298,11 @@ def upload_resume():
             errors=validateReturnGemini(errors)
             if len(errors)!=0:
                 return jsonify({"result": "Attention", "reason": "Resume contains Portuguese grammar errors", "errors": errors}), 400
+    
+
+    keywords=check_keywords(job_description)
+    if len(keywords)!=0:
+        score, keywords_missing = match_keywords_with_resume(job_description, keywords)
 
     # Step 6: Calculate similarity score with job description
     similarity_score = calculate_similarity(resume_text, job_description)
@@ -246,8 +313,10 @@ def upload_resume():
     return jsonify({
         "result": "Accepted",
         "reason": "Resume meets all criteria",
-        "similarity_score": round(similarity_score * 100, 2)  # Return score as a percentage
-    }), 200
+        "similarity_score": round(similarity_score * 100, 2),
+        "keywords_matching": round(score * 100, 2),
+        "keywords_missing": keywords_missing
+        }), 200
 
 @app.route('/dicas')
 def dicas():
