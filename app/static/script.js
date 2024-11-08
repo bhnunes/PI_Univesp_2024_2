@@ -40,9 +40,9 @@ async function runAnalysis() {
             if (result.errors) { // Verifica se há erros
                 resultDiv.innerHTML += "<ul>";
                 for (const error of result.errors) {
-                    resultDiv.innerHTML += `<li><strong>Termo:</strong> ${error.term}</li>`;
-                    resultDiv.innerHTML += `<li><strong>Correções:</strong> ${error.corrections.join(', ')}</li>`;
-                    resultDiv.innerHTML += `<li><strong>Mensagem:</strong> ${error.message}</li>`;
+                    resultDiv.innerHTML += `<li><strong>Termo:</strong> ${error.termo}</li>`;
+                    resultDiv.innerHTML += `<li><strong>Correções:</strong> ${error.correcao}</li>`;
+                    resultDiv.innerHTML += `<li><strong>Mensagem:</strong> ${error.mensagem}</li>`;
                     resultDiv.innerHTML += "<hr>"; // Adiciona uma linha horizontal para separar os erros
                 }
                 resultDiv.innerHTML += "</ul>";

@@ -69,7 +69,7 @@ def has_more_than_two_pages(file_path):
     elif extension == '.txt':
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
-            return len(text) > 5000  # Verifica se o arquivo TXT tem mais de 10k caracteres
+            return len(text) > 5000
     else:
         return False
 
@@ -87,7 +87,11 @@ def contains_image(file_path):
         doc = Document(file_path)
         for paragraph in doc.paragraphs:
             for run in paragraph.runs:
-                if run._element.xml.find(qn('w:drawing')) is not None:
+                #drawing_element = run._element.xml.find(qn('w:drawing'))
+                drawing_element = run._element.xml
+                drawing_element=str(drawing_element)
+                flagTest= '<w:drawing>' in drawing_element
+                if flagTest:
                     return True
         return False
     else:
@@ -116,31 +120,57 @@ def check_personalinfo(text):
 
 
 def check_portuguese_errors(text):
+    text=str(text)
+    text=text.upper()
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
+    
     data = {
         "contents": [
-            {"parts": [{"text": f"Analise o seguinte texto em português e me retorne em formato JSON uma lista de termos que possuem erros gramaticais, incluindo sugestões de correção. Caso o texto não tenha erros, retorne uma lista vazia. \n\n**Texto:** {text}\n\n**Formato JSON:** {{'errors': [{{'term': 'termo_com_erro', 'corrections': ['correção1', 'correção2'], 'message': 'Mensagem sobre o erro (opcional).'}}]}}\n```"}]}
-        ]
-    }
+            {"parts": [{"text": f"Analise o seguinte texto em português e me retorne em formato JSON uma lista de termos que possuem **erros de ortografia graves**, incluindo sugestões de correção. Considere **erros de ortografia graves** que prejudicam a legibilidade e a compreensão do texto, como:- Erros de ortografia (ex: \\\"presedente\\\" - errado); - Erros de acentuação (ex: \\\"facil\\\" - errado); - Erros de hífen (ex: \\\"mal-humorado\\\" - errado). **Importante:** O texto de entrada está todo em maiúsculas. **Ignore qualquer análise de maiúsculas e minúsculas e não corrija a ortografia de palavras em maiúsculas.** Ignore erros de estilo, abreviações, nomenclatura, erros de gramática e erros de pontuação. Caso o texto não tenha erros de ortografia graves, retorne uma lista vazia. \n\n**Texto:** {text}\n\n**Formato JSON:** {{'errors': [{{'termo': 'termo_com_erro', 'correcao':'correção1', 'mensagem': 'Mensagem sobre o erro.'}}]}}"}]}
+                ]
+            } 
+    
+    passed=False
+    attempts = 0
+    max_attempts = 3
+    while attempts < max_attempts:
+        attempts += 1
+        response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
+        print(f"Tentativa {attempts} para verificar erros gramaticais.")
 
-    response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
-    print(response.text)
+        if response.status_code == 200:
+            try:
+                result = response.json()
+                results = result["candidates"][0]["content"]['parts'][0]["text"]
+                results = str(results).replace("```json", "")
+                results = results.replace("```", "")
+                result = json.loads(results)
+                passed=True
+                return result["errors"], passed  # Retorna a lista de erros se o formato estiver correto
+            except (KeyError, IndexError, json.JSONDecodeError):
+                print(f"Formato JSON inválido na tentativa {attempts}. Tentando novamente...")
+                continue  # Tenta novamente se o formato estiver incorreto
+        else:
+            print(f"Erro ao comunicar com o Gemini: {response.status_code}")
+            return {"errors": []}, passed  # Retorna uma lista vazia em caso de erro na comunicação com o Gemini
 
-    if response.status_code == 200:
-        try:
-            result = response.json()
-            results=result["candidates"][0]["content"]['parts'][0]["text"]
-            results=str(results).replace("```json","")
-            results=results.replace("```","")
-            result = json.loads(results)
-            return result["errors"]
-        except (KeyError, IndexError):
-            print("Erro ao processar a resposta do Gemini.")
-            return {"errors": []}
-    else:
-        print(f"Erro ao comunicar com o Gemini: {response.status_code}")
-        return {"errors": []}
+    print(f"Tentativas esgotadas. Falha ao obter o formato JSON correto.")
+    return {"errors": []}, passed  # Retorna uma lista vazia se as tentativas esgotarem
+
+def remove_strings_useless(input_string):
+    input_string=str(input_string).upper()
+    return input_string.replace(" ", "")
+
+def validateReturnGemini(errors):
+    valid_items = []
+    unique_items = set()
+    
+    for error in errors:
+        if remove_strings_useless(error['termo']) != remove_strings_useless(error['correcao']) and tuple(error.items()) not in unique_items:
+            valid_items.append(error)
+            unique_items.add(tuple(error.items()))
+    return valid_items
 
 
 def calculate_similarity(resume_text, job_description):
@@ -198,14 +228,17 @@ def upload_resume():
     if not check_personalinfo(resume_text):
         return jsonify({"result": "Rejected", "reason": "Resume Has no Email or Phone Number or Linkedin or Github for contact"}), 400
     
+
     # Verifica erros de português
-    errors = check_portuguese_errors(resume_text)
-    if errors:
-        return jsonify({"result": "Rejected", "reason": "Resume contains Portuguese grammar errors", "errors": errors}), 400
+    errors, executed_Gemini = check_portuguese_errors(resume_text)
+    if executed_Gemini:
+        if len(errors)!=0:
+            errors=validateReturnGemini(errors)
+            if len(errors)!=0:
+                return jsonify({"result": "Attention", "reason": "Resume contains Portuguese grammar errors", "errors": errors}), 400
 
     # Step 6: Calculate similarity score with job description
     similarity_score = calculate_similarity(resume_text, job_description)
-
 
     restart()
     
