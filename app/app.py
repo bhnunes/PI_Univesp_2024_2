@@ -15,8 +15,13 @@ from docx import Document
 import io  # For handling in-memory file objects
 from docx.oxml.shared import OxmlElement
 from docx.oxml.ns import qn
+from flask_socketio import SocketIO, emit
+import secrets
+from werkzeug.datastructures import FileStorage # Importa FileStorage
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = secrets.token_urlsafe(32)  # Chave secreta definida
+socketio = SocketIO(app)
 
 load_dotenv()
 
@@ -242,81 +247,12 @@ def calculate_similarity(resume_text, job_description):
     similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
     return similarity_score
 
+
 @app.route('/')
 def home():
     current_year = datetime.now().year  # Get the current year
     return render_template('index.html', current_year=current_year)
 
-@app.route('/upload', methods=['POST'])
-def upload_resume():
-    if 'file' not in request.files or 'job_description' not in request.form:
-        return jsonify({"error": "File or job description missing"}), 400
-    
-    file = request.files['file']
-    job_description = request.form['job_description']
-
-    # Salva o arquivo na pasta temporária
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(file_path)
-    
-    # Verifica a extensão do arquivo
-    extension = os.path.splitext(filename)[1].lower()
-    
-    # Lê o conteúdo do arquivo de acordo com a extensão
-    if extension == '.pdf':
-        resume_text = pdf_to_text(file_path)
-    elif extension == '.docx':
-        resume_text = docx_to_text(file_path)
-    elif extension == '.txt':
-        resume_text = txt_to_text(file_path)
-    else:
-        restart()
-        return jsonify({"result": "Rejected", "reason": "Invalid file format. Please upload a PDF, DOCX, or TXT file."}), 400
-
-    # Step 2: Check page count
-    if has_more_than_two_pages(file_path):
-        return jsonify({"result": "Rejected", "reason": "Resume has more than 2 pages"}), 400
-    
-    # Step 3: Check for image (photo)
-    if contains_image(file_path):
-        return jsonify({"result": "Rejected", "reason": "Resume contains a photo"}), 400
-    
-    # Step 4: Check language
-    if not is_portuguese(resume_text):
-        return jsonify({"result": "Rejected", "reason": "Resume is not in Portuguese"}), 400
-    
-    # Step 5: Personal ID
-    if not check_personalinfo(resume_text):
-        return jsonify({"result": "Rejected", "reason": "Resume Has no Email or Phone Number or Linkedin or Github for contact"}), 400
-    
-
-    # Verifica erros de português
-    errors, executed_Gemini = check_portuguese_errors(resume_text)
-    if executed_Gemini:
-        if len(errors)!=0:
-            errors=validateReturnGemini(errors)
-            if len(errors)!=0:
-                return jsonify({"result": "Attention", "reason": "Resume contains Portuguese grammar errors", "errors": errors}), 400
-    
-
-    keywords=check_keywords(job_description)
-    if len(keywords)!=0:
-        score, keywords_missing = match_keywords_with_resume(job_description, keywords)
-
-    # Step 6: Calculate similarity score with job description
-    similarity_score = calculate_similarity(resume_text, job_description)
-
-    restart()
-    
-    # If all checks pass
-    return jsonify({
-        "result": "Accepted",
-        "reason": "Resume meets all criteria",
-        "similarity_score": round(similarity_score * 100, 2),
-        "keywords_matching": round(score * 100, 2),
-        "keywords_missing": keywords_missing
-        }), 200
 
 @app.route('/dicas')
 def dicas():
@@ -340,5 +276,132 @@ def modelo():
 def download_modelo(nome_arquivo):
     return send_from_directory('static/modelos_CV', nome_arquivo, as_attachment=True)
 
+
+@app.route('/upload', methods=['POST'])
+def upload_resume():
+    if 'file' not in request.files:
+        return jsonify({"error": "File missing"}), 400
+    
+    file = request.files['file']
+    job_description = request.form.get('job_description') 
+
+    # Salva o arquivo na pasta temporária
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+
+    # # Get the client's session ID (sid) using SocketIO 
+    # sid = request.sid  # Accessing SocketIO's sid attribute
+    
+    # Send the file path and job description to the client using SocketIO
+    #emit('file_uploaded', {'file_path': file_path, 'job_description': job_description}, namespace='/analysis')    
+
+    return jsonify({"message": "File uploaded successfully"}), 200 
+
+
+@socketio.on('upload_complete', namespace='/analysis')
+def handle_upload_complete(data):
+    file_path = data.get('file_path')
+    job_description = data.get('job_description')
+    emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})
+
+
+@socketio.on('connect', namespace='/analysis')
+def handle_connect():
+    print('Cliente conectado ao namespace /analysis')
+
+
+@socketio.on('start_analysis', namespace='/analysis')
+def handle_start_analysis(data):
+    # Get the file path from the SocketIO event data
+    file_path = data.get('file_path')  
+    job_description = data.get('job_description') 
+
+    # Check if the file path is provided
+    if not file_path:
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Por favor, selecione um arquivo.'}, namespace='/analysis')
+        return
+
+    # Now you have the file path and can start the analysis
+    emit('analysis_progress', {'progress': 10, 'message': 'Verificando formato do arquivo...'}, namespace='/analysis')
+    socketio.start_background_task(target=run_analysis, file_path=file_path, job_description=job_description, namespace='/analysis')
+
+
+def run_analysis(file_path, job_description, namespace='/analysis'):
+    #Step 1 : Check the file extension
+    extension = os.path.splitext(file_path)[1].lower()
+    
+    # Lê o conteúdo do arquivo de acordo com a extensão
+    if extension == '.pdf':
+        resume_text = pdf_to_text(file_path)
+    elif extension == '.docx':
+        resume_text = docx_to_text(file_path)
+    elif extension == '.txt':
+        resume_text = txt_to_text(file_path)
+    else:
+        restart()
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'})
+        return
+
+    # Step 2: Check page count
+    if has_more_than_two_pages(file_path):
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'})
+        return
+
+    emit('analysis_progress', {'progress': 20, 'message': 'Verificando a contagem de páginas...'})
+
+    # Step 3: Check for image (photo)
+    if contains_image(file_path):
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume contains a photo'})
+        return
+
+    emit('analysis_progress', {'progress': 30, 'message': 'Verificando a presença de imagens...'})
+
+    # Step 4: Check language
+    if not is_portuguese(resume_text):
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'})
+        return
+
+    emit('analysis_progress', {'progress': 40, 'message': 'Verificando o idioma...'})
+
+    # Step 5: Personal ID
+    if not check_personalinfo(resume_text):
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'})
+        return
+
+    emit('analysis_progress', {'progress': 50, 'message': 'Verificando informações de contato...'})
+
+    # Step 6: check Grammar errors
+    errors, executed_Gemini = check_portuguese_errors(resume_text)
+    if executed_Gemini:
+        if len(errors)!=0:
+            errors=validateReturnGemini(errors)
+            if len(errors)!=0:
+                emit('analysis_result', {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors})
+                return
+
+    emit('analysis_progress', {'progress': 60, 'message': 'Analisando gramática e ortografia...'})
+
+
+    keywords=check_keywords(job_description)
+    if len(keywords)!=0:
+        score, keywords_missing = match_keywords_with_resume(job_description, keywords)
+
+    # Step 7: Calculate similarity score with job description
+    similarity_score = calculate_similarity(resume_text, job_description)
+
+    restart()
+
+        # If all checks pass
+    emit('analysis_result', {
+        "result": "Accepted",
+        "reason": "Resume meets all criteria",
+        "similarity_score": round(similarity_score * 100, 2),
+        "keywords_matching": round(score * 100, 2),
+        "keywords_missing": keywords_missing
+        },namespace=namespace)
+    
+
 if __name__== '_main_':
-    app.run(debug=True)
+    #app.run(debug=True)
+    socketio.run(app, debug=True) 

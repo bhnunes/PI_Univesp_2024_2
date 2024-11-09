@@ -1,6 +1,6 @@
-
+/* Estilos gerais */
 body, html {
-    font-family: 'Open Sans', sans-serif; /* Fonte mais moderna */
+    font-family: 'Open Sans', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -27,7 +27,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn {
-    background-color: #4CAF50; /* Verde vibrante */
+    background-color: #4CAF50; 
     color: white;
     padding: 10px 20px;
     border: none;
@@ -37,79 +37,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn:hover {
-    background-color: #45a049; /* Verde mais escuro */
+    background-color: #45a049; 
 }
 
-.features {
-    padding: 50px 0;
-    text-align: center;
+/* Estilos para a barra de progresso */
+.progress {
+    height: 20px;
+    background-color: #e9ecef;
 }
 
-.card {
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.progress-bar {
+    background-color: #28a745; /* Verde */
 }
 
-.card-img-top {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-}
-
-.card-body {
-    padding: 15px;
-}
-
-.card-title {
-    font-weight: bold;
-    color: #333;
-}
-
-.card-text {
-    color: #555;
-}
-
-.row {
-    margin-bottom: 20px;
-}
-
-.col-md-4 {
-    padding-left: 5px;
-    padding-right: 5px;
-}
-
-.call-to-action {
-    background-color: #4CAF50;
-    color: #fff;
-    padding: 50px 0;
-    text-align: center;
-}
-
-footer {
-    background-color: #333;
-    color: #fff;
-    padding: 20px 0;
-    text-align: center;
-}
-
-.github-link {
-    color: #fff;
-    text-decoration: none;
-    font-size: 1.2em;
-    margin-left: 10px;
-    transition: color 0.3s ease;
-}
-
-.github-link:hover {
-    color: #4CAF50;
-}
-
-/* Estilos para o Carousel */
-.carousel-item {
-    /* Adicione estilos para o conteúdo do carousel */
-}
-
-/* Estilos para o Formulário */
+/* Estilos para o formulário */
 #pdfFile, 
 #jobDescription {
     margin-bottom: 10px;
