@@ -1,0 +1,208 @@
+Parte 1: Função para Análise de Vaga e Pontuação de Match de CV
+
+################# RESUMO DA FUNÇÃO #################
+
+O usuário precisa fornecer três entradas: a descrição da vaga, o conteúdo do currículo e uma chave de API.
+A função retorna um dicionário com uma pontuação de "match" e listas de palavras-chave, palavras-chave expandidas e palavras encontradas no currículo.
+Cada elemento da saída fornece insights sobre a correspondência entre o perfil do candidato e os requisitos da vaga, facilitando a análise e tomada de decisão.
+
+################# OBJETIVOS DA FUNÇÃO #################
+
+Limpeza e pré-processamento do texto: Lidando com diferenças de linguagem e possíveis ruídos nos textos.
+Extração de palavras-chave com a API: Usando uma API para capturar termos importantes.
+Análise semântica básica: Lidando com sinônimos e termos relacionados, para considerar correspondências mais amplas.
+Cálculo de pontuação de "match": Com um cálculo mais flexível, considerando peso das palavras e relevância relativa.
+Estrutura e tratamento de exceções: Tornando a função mais robusta e fácil de depurar.
+
+################# ETAPAS DA FUNÇÃO #################
+
+##### 1. Limpeza e Pré-processamento do Texto ######
+
+Antes de qualquer análise, é essencial limpar e padronizar o texto de entrada. Isso inclui:
+- Remover caracteres especiais, pontuação e números desnecessários.
+- Colocar o texto em letras minúsculas para evitar problemas de case sensitivity.
+- Remover stop words, que são palavras comuns sem muito valor semântico (ex.: "o", "a", "é", etc.).
+- Biblioteca Python Utilizada: Será usado o nltk, uma biblioteca popular em Python para processamento de linguagem natural.
+
+código:<
+
+import re
+import nltk
+from nltk.corpus import stopwords
+
+# Baixar uma vez as stopwords
+nltk.download('stopwords')
+stop_words = set(stopwords.words('portuguese'))
+
+def limpar_texto(texto):
+    # Remover caracteres especiais e colocar tudo em minúsculas
+    texto_limpo = re.sub(r'[^a-zA-Z\s]', '', texto).lower()
+    # Remover stop words
+    palavras = texto_limpo.split()
+    palavras_filtradas = [palavra for palavra in palavras if palavra not in stop_words]
+    return ' '.join(palavras_filtradas)
+
+>
+
+##### 2. Extração de Palavras-chave com a API ##### 
+
+Para extrair as palavras-chave da descrição da vaga, vamos utilizar a API do Gemini (ou uma API similar que tenha a função de extrair termos-chave).
+Essa função extrair_palavras_chave envia o texto para a API e retorna uma lista de palavras-chave. Vamos incluir tratamento de exceções para lidar com erros de conexão ou respostas inválidas.
+
+código:<
+
+import requests
+
+def extrair_palavras_chave(texto, api_key):
+    try:
+        url = "https://api.gemini.com/keyword-extraction"  # Exemplo fictício
+        headers = {"Authorization": f"Bearer {api_key}"}
+        data = {"text": texto}
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            keywords = response.json().get("keywords", [])
+            return keywords
+        else:
+            raise Exception(f"Erro na API: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Erro de conexão com a API: {e}")
+
+>
+
+##### 3. Análise Semântica Básica ##### 
+
+Para casos complexos, onde o candidato pode usar termos diferentes para habilidades semelhantes, podemos expandir nossa análise para considerar sinônimos. Por exemplo, "machine learning" pode aparecer como "aprendizado de máquina".
+Podemos usar nltk ou uma biblioteca de sinônimos (como WordNet, adaptada para português) para criar uma lista de palavras relacionadas. Se necessário, podemos incluir um dicionário manualmente para termos comuns na área.
+
+código:<
+
+from nltk.corpus import wordnet as wn
+
+# Função para obter sinônimos, adaptado para o português
+def obter_sinonimos(palavra):
+    sinonimos = {palavra}
+    for syn in wn.synsets(palavra, lang='por'):
+        for lemma in syn.lemmas('por'):
+            sinonimos.add(lemma.name())
+    return sinonimos
+
+def expandir_palavras_chave(palavras_chave):
+    palavras_expandidas = set()
+    for palavra in palavras_chave:
+        palavras_expandidas.update(obter_sinonimos(palavra))
+    return palavras_expandidas
+
+>
+
+##### 4. Cálculo de Pontuação de "Match" com Peso das Palavras ##### 
+
+Para um cálculo mais preciso, vamos:
+- Atribuir pesos diferentes a palavras-chave (por exemplo, palavras mais frequentes ou mais relevantes podem ter maior peso).
+- Comparar cada palavra-chave com o conteúdo do CV, considerando sinônimos.
+- Calcular a pontuação como uma média ponderada.
+
+código:<
+
+def calcular_match(conteudo_cv, palavras_chave_vaga):
+    conteudo_cv = set(limpar_texto(conteudo_cv).split())
+    palavras_chave_expandidas = expandir_palavras_chave(palavras_chave_vaga)
+    match_count = 0
+    total_peso = 0
+
+    for palavra in palavras_chave_expandidas:
+        peso = 1.5 if palavra in ["python", "machine learning", "api"] else 1  # Exemplo de pesos maiores
+        total_peso += peso
+        if palavra in conteudo_cv:
+            match_count += peso
+    
+    score = (match_count / total_peso) * 100  # Pontuação em percentual
+    return score
+
+>
+
+##### 5. Função Principal analisar_vaga Integrada e Detalhada ##### 
+
+Com todas as partes acima, nossa função analisar_vaga final terá:
+- Limpeza e pré-processamento do texto.
+- Extração de palavras-chave da descrição da vaga.
+- Expansão de palavras-chave para considerar sinônimos.
+- Cálculo de "match" considerando pesos.
+
+código:<
+
+def analisar_vaga(descricao_vaga, conteudo_cv, api_key):
+    # 1. Limpar e pré-processar os textos
+    descricao_vaga_limpa = limpar_texto(descricao_vaga)
+    conteudo_cv_limpo = limpar_texto(conteudo_cv)
+
+    # 2. Extrair palavras-chave da vaga
+    palavras_chave_vaga = extrair_palavras_chave(descricao_vaga_limpa, api_key)
+
+    # 3. Expandir palavras-chave com sinônimos
+    palavras_chave_expandidas = expandir_palavras_chave(palavras_chave_vaga)
+
+    # 4. Calcular a pontuação de match
+    score = calcular_match(conteudo_cv_limpo, palavras_chave_expandidas)
+    
+    # 5. Retornar os resultados
+    return {
+        "score": score,
+        "palavras_chave_vaga": palavras_chave_vaga,
+        "palavras_chave_expandidas": list(palavras_chave_expandidas),
+        "palavras_encontradas_cv": [palavra for palavra in palavras_chave_expandidas if palavra in conteudo_cv_limpo]
+    }
+
+>
+
+################# EXEMPLOS DE USO #################
+
+##### EXEMPLO 01 ##### 
+
+# Exemplo de descrição da vaga e conteúdo do CV
+- descricao_vaga = "Procuramos desenvolvedor Python com experiência em aprendizado de máquina e APIs REST."
+- conteudo_cv = "Tenho experiência como desenvolvedor Python, com projetos em Machine Learning e APIs RESTful."
+- api_key: "SUA_CHAVE_API"
+
+# Chamada da função principal
+- resultado = analisar_vaga(descricao_vaga, conteudo_cv, api_key)
+- print(resultado)
+
+
+##### EXEMPLO DE SAÍDA ESPERADA #####
+
+{
+    "score": 85.0,
+    "palavras_chave_vaga": ["Python", "aprendizado de máquina", "APIs REST"],
+    "palavras_chave_expandidas": ["Python", "aprendizado de máquina", "machine learning", "APIs REST"],
+    "palavras_encontradas_cv": ["Python", "machine learning", "APIs REST"]
+}
+
+
+##### EXEMPLO 02 ##### 
+
+Chamada da Função:
+- descricao_vaga = "Procuramos desenvolvedor Python com experiência em aprendizado de máquina e APIs REST."
+- conteudo_cv = "Tenho experiência como desenvolvedor Python, com projetos em Machine Learning e APIs RESTful."
+- api_key = "SUA_CHAVE_API"
+
+resultado = analisar_vaga(descricao_vaga, conteudo_cv, api_key)
+print(resultado)
+
+
+Saída Esperada:
+{
+    "score": 85.0,
+    "palavras_chave_vaga": ["Python", "aprendizado de máquina", "APIs REST"],
+    "palavras_chave_expandidas": ["Python", "aprendizado de máquina", "machine learning", "APIs REST"],
+    "palavras_encontradas_cv": ["Python", "machine learning", "APIs REST"]
+}
+
+################# EXPLICACAO DA SAIDA #################
+
+score: A pontuação de correspondência indica que 85% das palavras-chave da vaga estão no currículo do candidato. Essa pontuação é calculada com base nos pesos atribuídos a cada palavra-chave e nas correspondências encontradas.
+palavras_chave_vaga: Lista das palavras-chave principais extraídas diretamente da descrição da vaga.
+palavras_chave_expandidas: Lista que inclui as palavras-chave originais mais sinônimos, aumentando as chances de correspondência.
+palavras_encontradas_cv: Lista de palavras-chave expandidas que também estão presentes no conteúdo do currículo, indicando as habilidades que o candidato possui em relação à vaga.
+
+

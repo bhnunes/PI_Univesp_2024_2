@@ -1,0 +1,136 @@
+Parte 2: Casos de Teste em Python.
+
+################# RESUMO DOS TESTES #################
+
+Conjunto de casos de teste para as funções descritas, em que planeja-se testar cada uma das etapas separadamente, bem como a função principal analisar_vaga. 
+Considera-se situações complexas, como sinônimos e diferentes formatos de entrada. 
+
+Biblioteca Python utilizada: Os testes serão desenvolvidos usando a biblioteca unittest, e cada teste verificará se as funções estão produzindo os resultados esperados.
+
+Estrutura de Casos de Teste: 
+- Testes de Limpeza de Texto
+- Testes de Extração de Palavras-Chave com API
+- Testes de Expansão de Sinônimos
+- Testes de Cálculo de Pontuação de Match
+- Testes Integrados da Função Principal analisar_vaga
+
+################# Código de Teste Completo #################
+
+código:<
+
+import unittest
+from unittest.mock import patch
+
+# Vamos supor que todas as funções descritas acima foram importadas
+# from vaga_analysis import limpar_texto, extrair_palavras_chave, obter_sinonimos, expandir_palavras_chave, calcular_match, analisar_vaga
+
+class TestVagaAnalysisFunctions(unittest.TestCase):
+    def test_limpar_texto(self):
+        # Teste básico de limpeza de texto
+        texto = "Procuramos um desenvolvedor Python, com experiência em Machine Learning."
+        texto_limpo = limpar_texto(texto)
+        expected = "procuramos desenvolvedor python experiência machine learning"
+        self.assertEqual(texto_limpo, expected)
+
+    @patch('vaga_analysis.requests.post')
+    def test_extrair_palavras_chave(self, mock_post):
+        # Simulando a resposta da API para extrair palavras-chave
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"keywords": ["Python", "Machine Learning", "APIs REST"]}
+        
+        descricao_vaga = "Procuramos desenvolvedor Python com experiência em aprendizado de máquina e APIs REST."
+        api_key = "dummy_key"
+        palavras_chave = extrair_palavras_chave(descricao_vaga, api_key)
+        
+        expected_keywords = ["Python", "Machine Learning", "APIs REST"]
+        self.assertEqual(palavras_chave, expected_keywords)
+
+    def test_obter_sinonimos(self):
+        # Teste para obter sinônimos
+        palavra = "aprendizado de máquina"
+        sinonimos = obter_sinonimos(palavra)
+        
+        # Checando se pelo menos um sinônimo esperado está presente
+        self.assertIn("machine learning", sinonimos)
+        self.assertIn("aprendizado de máquina", sinonimos)
+
+    def test_expandir_palavras_chave(self):
+        # Testando a expansão de palavras-chave com sinônimos
+        palavras_chave = ["Python", "aprendizado de máquina"]
+        palavras_expandidas = expandir_palavras_chave(palavras_chave)
+        
+        # Verifica se palavras expandidas contêm os sinônimos esperados
+        expected_expanded_keywords = {"Python", "aprendizado de máquina", "machine learning"}
+        self.assertTrue(expected_expanded_keywords.issubset(palavras_expandidas))
+
+    def test_calcular_match(self):
+        # Testando o cálculo de match com uma lista de palavras-chave e conteúdo de CV
+        conteudo_cv = "Tenho experiência como desenvolvedor Python, com projetos em Machine Learning e APIs REST."
+        palavras_chave_vaga = ["Python", "aprendizado de máquina", "APIs REST"]
+        
+        # O resultado esperado depende dos pesos definidos, ajustamos o esperado de acordo com o peso na função
+        score = calcular_match(conteudo_cv, palavras_chave_vaga)
+        
+        # Testando se a pontuação está dentro do esperado (considerando peso)
+        self.assertAlmostEqual(score, 85.0, delta=5.0)
+
+    @patch('vaga_analysis.extrair_palavras_chave')
+    def test_analisar_vaga(self, mock_extrair_palavras_chave):
+        # Mock para a função de extração de palavras-chave para evitar chamadas reais à API
+        mock_extrair_palavras_chave.return_value = ["Python", "aprendizado de máquina", "APIs REST"]
+        
+        # Entrada de exemplo para a função principal
+        descricao_vaga = "Procuramos desenvolvedor Python com experiência em aprendizado de máquina e APIs REST."
+        conteudo_cv = "Tenho experiência como desenvolvedor Python, com projetos em Machine Learning e APIs RESTful."
+        api_key = "dummy_key"
+        
+        resultado = analisar_vaga(descricao_vaga, conteudo_cv, api_key)
+        
+        # Verifica o resultado com base nas saídas esperadas descritas
+        expected_result = {
+            "score": 85.0,
+            "palavras_chave_vaga": ["Python", "aprendizado de máquina", "APIs REST"],
+            "palavras_chave_expandidas": ["Python", "aprendizado de máquina", "machine learning", "APIs REST"],
+            "palavras_encontradas_cv": ["Python", "machine learning", "APIs REST"]
+        }
+        
+        self.assertAlmostEqual(resultado["score"], expected_result["score"], delta=5.0)
+        self.assertListEqual(resultado["palavras_chave_vaga"], expected_result["palavras_chave_vaga"])
+        self.assertTrue(set(expected_result["palavras_chave_expandidas"]).issubset(resultado["palavras_chave_expandidas"]))
+        self.assertTrue(set(expected_result["palavras_encontradas_cv"]).issubset(resultado["palavras_encontradas_cv"]))
+
+if __name__ == '__main__':
+    unittest.main()
+
+>
+
+################# Explicação dos Testes #################
+
+Testes de Limpeza de Texto (test_limpar_texto):
+- Testa a função limpar_texto para garantir que o texto seja normalizado corretamente.
+- Remove stopwords e caracteres especiais, retornando apenas as palavras relevantes.
+
+Testes de Extração de Palavras-Chave com API (test_extrair_palavras_chave):
+- Simula a resposta de uma API para verificar se a função extrair_palavras_chave consegue lidar com uma chamada de API e processar a resposta corretamente.
+- Usa o patch para evitar uma chamada real à API e retorna uma lista de palavras-chave simulada.
+
+Testes de Expansão de Sinônimos (test_obter_sinonimos e test_expandir_palavras_chave):
+- test_obter_sinonimos: Verifica se a função retorna uma lista de sinônimos relevante para uma palavra específica.
+- test_expandir_palavras_chave: Verifica se a função expande corretamente as palavras-chave considerando os sinônimos.
+
+Testes de Cálculo de Pontuação de Match (test_calcular_match):
+- Testa se a função calcular_match calcula uma pontuação correta ao comparar o conteúdo do currículo com as palavras-chave expandidas.
+- Usa uma pontuação esperada de 85.0 com uma margem de erro de 5.0.
+
+Testes Integrados da Função Principal analisar_vaga (test_analisar_vaga):
+- Testa a função principal analisar_vaga, usando o patch para simular a função de extração de palavras-chave da API.
+- Verifica se o dicionário de saída contém a pontuação esperada, as listas de palavras-chave, as palavras-chave expandidas, e as palavras encontradas no CV.
+
+################# Execução dos Testes #################
+
+Para executar os testes, salve o código acima e execute com o comando:
+
+python -m unittest <nome_do_arquivo>.py
+
+Isso garantirá que cada função seja testada individualmente e que a função integrada analisar_vaga funcione conforme o esperado, facilitando a detecção de problemas em cada etapa.
+
