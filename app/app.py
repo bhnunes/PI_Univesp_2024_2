@@ -18,6 +18,8 @@ from docx.oxml.ns import qn
 from flask_socketio import SocketIO, emit
 import secrets
 from werkzeug.datastructures import FileStorage # Importa FileStorage
+import time
+import threading
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_urlsafe(32)  # Chave secreta definida
@@ -32,6 +34,9 @@ APY_KEY=api_key
 # Configura a pasta temporária
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Cria a pasta se não existir
+
+# Create a semaphore
+upload_semaphore = threading.Semaphore(0)  # Start with value 0 (locked)
 
 def restart():
     uploads_path = os.path.join(app.root_path, 'uploads')
@@ -285,33 +290,27 @@ def upload_resume():
     file = request.files['file']
     job_description = request.form.get('job_description') 
 
+    # Acquire the semaphore
+    upload_semaphore.acquire() 
+
     # Salva o arquivo na pasta temporária
     filename = secure_filename(file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
-    # # Get the client's session ID (sid) using SocketIO 
-    # sid = request.sid  # Accessing SocketIO's sid attribute
-    
-    # Send the file path and job description to the client using SocketIO
-    #emit('file_uploaded', {'file_path': file_path, 'job_description': job_description}, namespace='/analysis')    
+    # Release the semaphore and emit the event
+    upload_semaphore.release() 
 
+    socketio.emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})   
     return jsonify({"message": "File uploaded successfully"}), 200 
 
 
-@socketio.on('upload_complete', namespace='/analysis')
-def handle_upload_complete(data):
-    file_path = data.get('file_path')
-    job_description = data.get('job_description')
-    emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})
-
-
-@socketio.on('connect', namespace='/analysis')
+@socketio.on('connect')
 def handle_connect():
-    print('Cliente conectado ao namespace /analysis')
+    print('Cliente conectado')
 
 
-@socketio.on('start_analysis', namespace='/analysis')
+@socketio.on('start_analysis')
 def handle_start_analysis(data):
     # Get the file path from the SocketIO event data
     file_path = data.get('file_path')  
@@ -319,15 +318,17 @@ def handle_start_analysis(data):
 
     # Check if the file path is provided
     if not file_path:
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Por favor, selecione um arquivo.'}, namespace='/analysis')
+        emit('analysis_result', {'result': 'Rejected', 'reason': 'Por favor, selecione um arquivo.'})
         return
 
-    # Now you have the file path and can start the analysis
-    emit('analysis_progress', {'progress': 10, 'message': 'Verificando formato do arquivo...'}, namespace='/analysis')
-    socketio.start_background_task(target=run_analysis, file_path=file_path, job_description=job_description, namespace='/analysis')
+    # Create an app context before starting the background task
+    with app.app_context():
+        socketio.start_background_task(target=run_analysis, file_path=file_path, job_description=job_description)
 
 
-def run_analysis(file_path, job_description, namespace='/analysis'):
+def run_analysis(file_path, job_description):
+    # Emit the progress event (NOW within the context)
+    emit('analysis_progress', {'progress': 10, 'message': 'Verificando formato do arquivo...'})
     #Step 1 : Check the file extension
     extension = os.path.splitext(file_path)[1].lower()
     
@@ -399,7 +400,7 @@ def run_analysis(file_path, job_description, namespace='/analysis'):
         "similarity_score": round(similarity_score * 100, 2),
         "keywords_matching": round(score * 100, 2),
         "keywords_missing": keywords_missing
-        },namespace=namespace)
+        })
     
 
 if __name__== '_main_':
