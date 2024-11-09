@@ -12,7 +12,6 @@ import requests
 import json
 from dotenv import load_dotenv
 from docx import Document
-import io  # For handling in-memory file objects
 from docx.oxml.shared import OxmlElement
 from docx.oxml.ns import qn
 
