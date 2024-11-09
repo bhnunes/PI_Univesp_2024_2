@@ -12,22 +12,20 @@ import requests
 import json
 from dotenv import load_dotenv
 from docx import Document
-from flask_socketio import SocketIO, emit
-import secrets
+import io  # For handling in-memory file objects
+from docx.oxml.shared import OxmlElement
+from docx.oxml.ns import qn
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = secrets.token_urlsafe(32)  # Chave secreta definida
-socketio = SocketIO(app)
 
 load_dotenv()
 
 api_key = os.getenv('API_KEY')
-
-APY_KEY=api_key
+APY_KEY = api_key
 
 # Configura a pasta temporária
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Cria a pasta se não existir
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Função para reiniciar a pasta de uploads
 def restart():
@@ -267,81 +265,52 @@ def upload_resume():
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
-    # Emite evento de upload do arquivo para o cliente
-    socketio.emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})
-    return jsonify({"message": "File uploaded successfully"}), 200 
+    # Realiza a análise
+    result = analyze_resume(file_path, job_description)
 
-# Lidar com conexão do cliente
-@socketio.on('connect')
-def handle_connect():
-    print('Cliente conectado')
+    # Limpa a pasta de uploads
+    restart()
 
-# Iniciar análise do CV
-@socketio.on('start_analysis')
-def handle_start_analysis(data):
-    file_path = data.get('file_path')
-    job_description = data.get('job_description')
-    if not file_path:
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Por favor, selecione um arquivo.'})
-        return
+    # Retorna o resultado para o cliente
+    return jsonify(result)
 
-    with app.app_context():
-        socketio.start_background_task(target=run_analysis, file_path=file_path, job_description=job_description)
-
-# Executar a análise em segundo plano
-def run_analysis(file_path, job_description):
-    emit('analysis_progress', {'progress': 10, 'message': 'Verificando formato do arquivo...'})
+# Função para analisar o currículo
+def analyze_resume(file_path, job_description):
     resume_text = extract_text(file_path)
 
     if resume_text is None:
-        restart()
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'})
-        return
+        return {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'}
 
-    emit('analysis_progress', {'progress': 20, 'message': 'Verificando a contagem de páginas...'})
     if has_more_than_two_pages(file_path):
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'})
-        return
+        return {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'}
 
-    emit('analysis_progress', {'progress': 30, 'message': 'Verificando a presença de imagens...'})
     if contains_image(file_path):
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume contains a photo'})
-        return
+        return {'result': 'Rejected', 'reason': 'Resume contains a photo'}
 
-    emit('analysis_progress', {'progress': 40, 'message': 'Verificando o idioma...'})
     if not is_portuguese(resume_text):
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'})
-        return
+        return {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'}
 
-    emit('analysis_progress', {'progress': 50, 'message': 'Verificando informações de contato...'})
     if not check_personalinfo(resume_text):
-        emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'})
-        return
+        return {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'}
 
-    emit('analysis_progress', {'progress': 60, 'message': 'Analisando gramática e ortografia...'})
     errors = check_portuguese_errors(resume_text)
     if len(errors)!=0:
         errors=validateReturnGemini(errors)
         if len(errors)!=0:
-            emit('analysis_result', {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors})
-            return
+            return {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}
 
-    emit('analysis_progress', {'progress': 70, 'message': 'Analisando palavras-chave...'})
     keywords = check_keywords(job_description)
     score, keywords_missing = match_keywords_with_resume(job_description, keywords)
-
-    emit('analysis_progress', {'progress': 80, 'message': 'Calculando similaridade...'})
     similarity_score = calculate_similarity(resume_text, job_description)
 
-    restart()
-    emit('analysis_result', {
+    return {
         "result": "Accepted",
         "reason": "Resume meets all criteria",
         "similarity_score": round(similarity_score * 100, 2),
         "keywords_matching": round(score * 100, 2),
         "keywords_missing": keywords_missing
-        })
+    }
 
 # Iniciar o servidor
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    app.run(debug=True)

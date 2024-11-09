@@ -1,96 +1,51 @@
-// Função para atualizar a barra de progresso
-function updateProgressBar(percentage) {
-    const progressBar = document.getElementById('progress-bar');
-    const progressBarElement = progressBar.querySelector('.progress-bar');
-    progressBarElement.style.width = percentage + '%';
-    progressBarElement.setAttribute('aria-valuenow', percentage);
-}
+const analiseButton = document.getElementById('analiseButton');
+const loadingMessage = document.getElementById('loading-message');
+const analysisResults = document.getElementById('analysis-results');
+const resultMessage = document.getElementById('result-message');
+const similarityScore = document.getElementById('similarity-score');
+const keywordsMatching = document.getElementById('keywords-matching');
+const keywordsMissing = document.getElementById('keywords-missing');
+const errorList = document.getElementById('error-list');
 
-// Função para enviar a requisição para o servidor
-async function sendAnalysisRequest() {
-    const pdfFile = document.getElementById('pdfFile').files[0];
-    const jobDescription = document.getElementById('jobDescription').value;
-    const resultDiv = document.getElementById('result');
-    const analiseButton = document.getElementById('analiseButton');
-    const progressBar = document.getElementById('progress-bar');
-    const statusContainer = document.getElementById('status-container');
-
-    if (!pdfFile || !jobDescription) {
-        resultDiv.innerHTML =
-        "<p style='color: red;'>Por favor, faça o upload de um PDF e insira a descrição da vaga.</p>";
-        return;
-    }
-
+analiseButton.addEventListener('click', async () => {
+    loadingMessage.style.display = 'block';
     analiseButton.disabled = true;
-    analiseButton.textContent = 'Analisando...';
-    progressBar.style.display = 'block';
-    statusContainer.innerHTML = ''; // Limpa as mensagens de status
-
-    // Inicia a conexão com o SocketIO
-    const socket = io.connect('http://127.0.0.1:5000');
-
-    const formData = new FormData();
-    formData.append('file', pdfFile);
-    formData.append('job_description', jobDescription);
 
     try {
         const response = await fetch('/upload', {
             method: 'POST',
-            body: formData,
+            body: new FormData(document.querySelector('form')) // Envia os dados do formulário
         });
 
         if (response.ok) {
-            // Aguarda o evento 'file_uploaded'
-            socket.on('file_uploaded', (data) => {
-                // Envia os dados para análise
-                socket.emit('start_analysis', data);
-                // Remove o listener para evitar chamadas múltiplas
-                socket.off('file_uploaded');
-            });
+            const data = await response.json();
+            loadingMessage.style.display = 'none';
+            analiseButton.disabled = false;
+            displayAnalysisResults(data);
         } else {
-            console.error('Post /upload files');
+            console.error('Erro ao analisar o currículo.');
+            loadingMessage.style.display = 'none';
+            analiseButton.disabled = false;
+            // Você pode adicionar um alerta aqui para o usuário
         }
     } catch (error) {
-        console.log(error);
-    }
-
-    // Escuta o evento 'analysis_progress' para atualizar a barra de progresso
-    socket.on('analysis_progress', (data) => {
-        updateProgressBar(data.progress);
-        const statusContainer = document.getElementById('status-container');
-        const newMessage = document.createElement('p');
-        newMessage.textContent = data.message;
-        statusContainer.appendChild(newMessage);
-    });
-
-    // Escuta o evento 'analysis_result' para exibir os resultados
-    socket.on('analysis_result', (data) => {
-        displayAnalysisResults(data);
-        analiseButton.textContent = 'Recarregar';
+        console.error('Erro durante a requisição:', error);
+        loadingMessage.style.display = 'none';
         analiseButton.disabled = false;
-        analiseButton.onclick = function () {
-            location.reload();
-        };
-    });
-}
+        // Adicione um alerta para o usuário
+    }
+});
 
-// Função para exibir os resultados da análise
-function displayAnalysisResults(result) {
-    const resultMessage = document.getElementById('result-message');
-    const similarityScore = document.getElementById('similarity-score');
-    const keywordsMatching = document.getElementById('keywords-matching');
-    const keywordsMissing = document.getElementById('keywords-missing');
-    const errorList = document.getElementById('error-list');
+function displayAnalysisResults(data) {
+    analysisResults.style.display = 'block';
+    resultMessage.textContent = data.reason;
+    similarityScore.textContent = data.similarity_score;
+    keywordsMatching.textContent = data.keywords_matching;
+    keywordsMissing.textContent = data.keywords_missing;
 
-    resultMessage.textContent = result.reason;
-    similarityScore.textContent = result.similarity_score;
-    keywordsMatching.textContent = result.keywords_matching;
-    keywordsMissing.textContent = result.keywords_missing;
-
-    // Mostra os erros, se houver
-    if (result.errors) {
+    if (data.errors) {
         errorList.innerHTML = ''; // Limpa a lista de erros
-        for (const error of result.errors) {
+        for (const error of data.errors) {
             const listItem = document.createElement('li');
             listItem.innerHTML = `<strong>Termo:</strong> ${error.termo} <br> <strong>Correções:</strong> ${error.correcao} <br> <strong>Mensagem:</strong> ${error.mensagem}`;
             errorList.appendChild(listItem);
@@ -98,16 +53,4 @@ function displayAnalysisResults(result) {
     } else {
         errorList.innerHTML = ''; // Limpa a lista de erros se não houver
     }
-
-    const analysisResults = document.getElementById('analysis-results');
-    if (analysisResults) {
-        analysisResults.style.display = 'block'; // Exibe os resultados após a análise
-    } else {
-        console.error("Elemento 'analysis-results' não encontrado.");
-    }
 }
-
-// Adiciona o listener de eventos quando o HTML estiver totalmente carregado
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('analiseButton').addEventListener('click', sendAnalysisRequest);
-});
