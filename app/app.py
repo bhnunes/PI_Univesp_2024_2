@@ -12,14 +12,8 @@ import requests
 import json
 from dotenv import load_dotenv
 from docx import Document
-import io  # For handling in-memory file objects
-from docx.oxml.shared import OxmlElement
-from docx.oxml.ns import qn
 from flask_socketio import SocketIO, emit
 import secrets
-from werkzeug.datastructures import FileStorage # Importa FileStorage
-import time
-import threading
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_urlsafe(32)  # Chave secreta definida
@@ -35,9 +29,7 @@ APY_KEY=api_key
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads') 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Cria a pasta se não existir
 
-# Create a semaphore
-upload_semaphore = threading.Semaphore(0)  # Start with value 0 (locked)
-
+# Função para reiniciar a pasta de uploads
 def restart():
     uploads_path = os.path.join(app.root_path, 'uploads')
     if os.path.exists(uploads_path):
@@ -45,30 +37,40 @@ def restart():
         os.makedirs(uploads_path, exist_ok=True)
     return None
 
+# Função para extrair texto de um arquivo
+def extract_text(file_path):
+    extension = os.path.splitext(file_path)[1].lower()
+    if extension == '.pdf':
+        return pdf_to_text(file_path)
+    elif extension == '.docx':
+        return docx_to_text(file_path)
+    elif extension == '.txt':
+        return txt_to_text(file_path)
+    else:
+        return None
 
+# Função para extrair texto de PDF
 def pdf_to_text(file_path):
-    """Extract text from PDF."""
     text = ""
     with fitz.open(file_path) as pdf:
         for page in pdf:
             text += page.get_text()
     return text
 
-
+# Função para extrair texto de DOCX
 def docx_to_text(file_path):
-    """Extract text from DOCX."""
     doc = Document(file_path)
     text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
     return text
 
+# Função para extrair texto de TXT
 def txt_to_text(file_path):
-    """Extract text from TXT."""
     with open(file_path, 'r', encoding='utf-8') as f:
         text = f.read()
     return text
 
+# Função para verificar se o arquivo tem mais de 2 páginas
 def has_more_than_two_pages(file_path):
-    """Check if a file has more than 2 pages (PDF) or a certain character limit (TXT)."""
     extension = os.path.splitext(file_path)[1].lower()
     if extension == '.pdf':
         with fitz.open(file_path) as pdf:
@@ -83,8 +85,8 @@ def has_more_than_two_pages(file_path):
     else:
         return False
 
+# Função para verificar se o arquivo contém imagem
 def contains_image(file_path):
-    """Check if PDF or DOCX contains images."""
     extension = os.path.splitext(file_path)[1].lower()
     if extension == '.pdf':
         with fitz.open(file_path) as pdf:
@@ -97,7 +99,6 @@ def contains_image(file_path):
         doc = Document(file_path)
         for paragraph in doc.paragraphs:
             for run in paragraph.runs:
-                #drawing_element = run._element.xml.find(qn('w:drawing'))
                 drawing_element = run._element.xml
                 drawing_element=str(drawing_element)
                 flagTest= '<w:drawing>' in drawing_element
@@ -107,13 +108,14 @@ def contains_image(file_path):
     else:
         return False
 
+# Função para verificar se o texto está em português
 def is_portuguese(text):
-    """Check if the text is in Portuguese."""
     try:
         return detect(text) == 'pt'
     except:
         return False
 
+# Função para verificar se o texto contém informações pessoais
 def check_personalinfo(text):
     phone_pattern = r'\s*\(\d{2}\)\s*\d{5}-\d{4}'
     email_pattern = r'\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
@@ -128,50 +130,37 @@ def check_personalinfo(text):
     else:
         return False 
 
-
+# Função para verificar erros de português
 def check_portuguese_errors(text):
-    text=str(text)
-    text=text.upper()
+    text=str(text).upper()
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
-    
     data = {
         "contents": [
             {"parts": [{"text": f"Analise o seguinte texto em português e me retorne em formato JSON uma lista de termos que possuem **erros de ortografia graves**, incluindo sugestões de correção. Considere **erros de ortografia graves** que prejudicam a legibilidade e a compreensão do texto, como:- Erros de ortografia (ex: \\\"presedente\\\" - errado); - Erros de acentuação (ex: \\\"facil\\\" - errado); - Erros de hífen (ex: \\\"mal-humorado\\\" - errado). **Importante:** O texto de entrada está todo em maiúsculas. **Ignore qualquer análise de maiúsculas e minúsculas e não corrija a ortografia de palavras em maiúsculas.** Ignore erros de estilo, abreviações, nomenclatura, erros de gramática e erros de pontuação. Caso o texto não tenha erros de ortografia graves, retorne uma lista vazia. \n\n**Texto:** {text}\n\n**Formato JSON:** {{'errors': [{{'termo': 'termo_com_erro', 'correcao':'correção1', 'mensagem': 'Mensagem sobre o erro.'}}]}}"}]}
                 ]
             } 
     
-    passed=False
-    attempts = 0
-    max_attempts = 3
-    while attempts < max_attempts:
-        attempts += 1
-        response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
-        print(f"Tentativa {attempts} para verificar erros gramaticais.")
+    response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
+    if response.status_code == 200:
+        try:
+            result = response.json()
+            results = result["candidates"][0]["content"]['parts'][0]["text"]
+            results = str(results).replace("```json", "")
+            results = results.replace("```", "")
+            result = json.loads(results)
+            return result["errors"]
+        except (KeyError, IndexError, json.JSONDecodeError):
+            return []
+    else:
+        return []
 
-        if response.status_code == 200:
-            try:
-                result = response.json()
-                results = result["candidates"][0]["content"]['parts'][0]["text"]
-                results = str(results).replace("```json", "")
-                results = results.replace("```", "")
-                result = json.loads(results)
-                passed=True
-                return result["errors"], passed  # Retorna a lista de erros se o formato estiver correto
-            except (KeyError, IndexError, json.JSONDecodeError):
-                print(f"Formato JSON inválido na tentativa {attempts}. Tentando novamente...")
-                continue  # Tenta novamente se o formato estiver incorreto
-        else:
-            print(f"Erro ao comunicar com o Gemini: {response.status_code}")
-            return {"errors": []}, passed  # Retorna uma lista vazia em caso de erro na comunicação com o Gemini
-
-    print(f"Tentativas esgotadas. Falha ao obter o formato JSON correto.")
-    return {"errors": []}, passed  # Retorna uma lista vazia se as tentativas esgotarem
-
+# Função para remover strings irrelevantes
 def remove_strings_useless(input_string):
     input_string=str(input_string).upper()
     return input_string.replace(" ", "")
 
+# Função para validar os erros retornados pelo Gemini
 def validateReturnGemini(errors):
     valid_items = []
     unique_items = set()
@@ -182,49 +171,33 @@ def validateReturnGemini(errors):
             unique_items.add(tuple(error.items()))
     return valid_items
 
-
-
+# Função para verificar palavras-chave
 def check_keywords(job_description):
-    job_description=str(job_description)
-    job_description=job_description.upper()
+    job_description=str(job_description).upper()
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {"Content-Type": "application/json"}
-    
     data = {
         "contents": [
             {"parts": [{"text": f"Extraia as palavras-chave relevantes de um **Texto:** de descrição de vaga, focando em habilidades técnicas, comportamentais e experiências profissionais. As palavras-chave devem se referir a:* **Habilidades técnicas:**  Linguagens de programação, frameworks, ferramentas, softwares, plataformas.* **Habilidades comportamentais:**  Adjetivos que descrevem características desejáveis como comunicação, trabalho em equipe, proatividade, criatividade etc.* **Experiência profissional:**  Verbos que indicam ações realizadas como 'desenvolver', 'implementar', 'integrar', 'configurar', 'gerenciar', etc.Apresente as palavras-chave em formato JSON, com a chave 'palavras_chaves' e uma lista com as palavras-chave.**Texto:** {job_description}**Formato JSON:** {{'palavras_chaves': []}}"}]}
         ]
     }
-    
-    passed=False
-    attempts = 0
-    max_attempts = 3
-    while attempts < max_attempts:
-        attempts += 1
-        response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
-        print(f"Tentativa {attempts} para keywords")
+    response = requests.post(url, headers=headers, json=data, params={"key": APY_KEY})
+    if response.status_code == 200:
+        try:
+            result = response.json()
+            results = result["candidates"][0]["content"]['parts'][0]["text"]
+            results = str(results).replace("```json", "")
+            results = results.replace("```", "")
+            result = json.loads(results)
+            return result["palavras_chaves"]
+        except (KeyError, IndexError, json.JSONDecodeError):
+            return []
+    else:
+        return []
 
-        if response.status_code == 200:
-            try:
-                result = response.json()
-                results = result["candidates"][0]["content"]['parts'][0]["text"]
-                results = str(results).replace("```json", "")
-                results = results.replace("```", "")
-                result = json.loads(results)
-                passed=True
-                return result["palavras_chaves"], passed  # Retorna a lista de erros se o formato estiver correto
-            except (KeyError, IndexError, json.JSONDecodeError):
-                print(f"Formato JSON inválido na tentativa {attempts}. Tentando novamente...")
-                continue  # Tenta novamente se o formato estiver incorreto
-        else:
-            print(f"Erro ao comunicar com o Gemini: {response.status_code}")
-            return {"errors": []}, passed  # Retorna uma lista vazia em caso de erro na comunicação com o Gemini
-
-    print(f"Tentativas esgotadas. Falha ao obter o formato JSON correto.")
-    return {"errors": []}, passed  # Retorna uma lista vazia se as tentativas esgotarem
-
+# Função para comparar palavras-chave do currículo com a descrição da vaga
 def match_keywords_with_resume(job_description, keywords):
-    keywords=list(keywords[0])
+    keywords=list(keywords)
     counter=0
     keywords_missing=""
     list_keywords_missing=[]
@@ -244,44 +217,43 @@ def match_keywords_with_resume(job_description, keywords):
             keywords_missing=keywords_missing[:-1]
     return score, keywords_missing
 
-
+# Função para calcular a similaridade entre o currículo e a descrição da vaga
 def calculate_similarity(resume_text, job_description):
-    """Calculate cosine similarity between resume text and job description."""
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
     similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
     return similarity_score
 
-
+# Rota principal
 @app.route('/')
 def home():
-    current_year = datetime.now().year  # Get the current year
+    current_year = datetime.now().year
     return render_template('index.html', current_year=current_year)
 
-
+# Rota para a página de dicas
 @app.route('/dicas')
 def dicas():
-    current_year = datetime.now().year  # Get the current year
+    current_year = datetime.now().year
     return render_template('dicas.html', current_year=current_year)
 
+# Rota para a página de validação do CV
 @app.route('/validar')
 def validar():
-    current_year = datetime.now().year  # Get the current year
+    current_year = datetime.now().year
     return render_template('validar.html', current_year=current_year)
 
-
+# Rota para a página de modelos
 @app.route('/modelo')
 def modelo():
-    current_year = datetime.now().year  # Get the current year
+    current_year = datetime.now().year
     return render_template('modelo.html', current_year=current_year)
-
 
 # Rotas para download dos modelos
 @app.route('/download/<nome_arquivo>')
 def download_modelo(nome_arquivo):
     return send_from_directory('static/modelos_CV', nome_arquivo, as_attachment=True)
 
-
+# Rota para upload do currículo
 @app.route('/upload', methods=['POST'])
 def upload_resume():
     if 'file' not in request.files:
@@ -290,110 +262,78 @@ def upload_resume():
     file = request.files['file']
     job_description = request.form.get('job_description') 
 
-    # Acquire the semaphore
-    upload_semaphore.acquire() 
-
     # Salva o arquivo na pasta temporária
     filename = secure_filename(file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
-    # Release the semaphore and emit the event
-    upload_semaphore.release() 
-
-    socketio.emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})   
+    # Emite evento de upload do arquivo para o cliente
+    socketio.emit('file_uploaded', {'file_path': file_path, 'job_description': job_description})
     return jsonify({"message": "File uploaded successfully"}), 200 
 
-
+# Lidar com conexão do cliente
 @socketio.on('connect')
 def handle_connect():
     print('Cliente conectado')
 
-
+# Iniciar análise do CV
 @socketio.on('start_analysis')
 def handle_start_analysis(data):
-    # Get the file path from the SocketIO event data
-    file_path = data.get('file_path')  
-    job_description = data.get('job_description') 
-
-    # Check if the file path is provided
+    file_path = data.get('file_path')
+    job_description = data.get('job_description')
     if not file_path:
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Por favor, selecione um arquivo.'})
         return
 
-    # Create an app context before starting the background task
     with app.app_context():
         socketio.start_background_task(target=run_analysis, file_path=file_path, job_description=job_description)
 
-
+# Executar a análise em segundo plano
 def run_analysis(file_path, job_description):
-    # Emit the progress event (NOW within the context)
     emit('analysis_progress', {'progress': 10, 'message': 'Verificando formato do arquivo...'})
-    #Step 1 : Check the file extension
-    extension = os.path.splitext(file_path)[1].lower()
-    
-    # Lê o conteúdo do arquivo de acordo com a extensão
-    if extension == '.pdf':
-        resume_text = pdf_to_text(file_path)
-    elif extension == '.docx':
-        resume_text = docx_to_text(file_path)
-    elif extension == '.txt':
-        resume_text = txt_to_text(file_path)
-    else:
+    resume_text = extract_text(file_path)
+
+    if resume_text is None:
         restart()
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'})
         return
 
-    # Step 2: Check page count
+    emit('analysis_progress', {'progress': 20, 'message': 'Verificando a contagem de páginas...'})
     if has_more_than_two_pages(file_path):
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'})
         return
 
-    emit('analysis_progress', {'progress': 20, 'message': 'Verificando a contagem de páginas...'})
-
-    # Step 3: Check for image (photo)
+    emit('analysis_progress', {'progress': 30, 'message': 'Verificando a presença de imagens...'})
     if contains_image(file_path):
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume contains a photo'})
         return
 
-    emit('analysis_progress', {'progress': 30, 'message': 'Verificando a presença de imagens...'})
-
-    # Step 4: Check language
+    emit('analysis_progress', {'progress': 40, 'message': 'Verificando o idioma...'})
     if not is_portuguese(resume_text):
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'})
         return
 
-    emit('analysis_progress', {'progress': 40, 'message': 'Verificando o idioma...'})
-
-    # Step 5: Personal ID
+    emit('analysis_progress', {'progress': 50, 'message': 'Verificando informações de contato...'})
     if not check_personalinfo(resume_text):
         emit('analysis_result', {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'})
         return
 
-    emit('analysis_progress', {'progress': 50, 'message': 'Verificando informações de contato...'})
-
-    # Step 6: check Grammar errors
-    errors, executed_Gemini = check_portuguese_errors(resume_text)
-    if executed_Gemini:
-        if len(errors)!=0:
-            errors=validateReturnGemini(errors)
-            if len(errors)!=0:
-                emit('analysis_result', {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors})
-                return
-
     emit('analysis_progress', {'progress': 60, 'message': 'Analisando gramática e ortografia...'})
+    errors = check_portuguese_errors(resume_text)
+    if len(errors)!=0:
+        errors=validateReturnGemini(errors)
+        if len(errors)!=0:
+            emit('analysis_result', {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors})
+            return
 
+    emit('analysis_progress', {'progress': 70, 'message': 'Analisando palavras-chave...'})
+    keywords = check_keywords(job_description)
+    score, keywords_missing = match_keywords_with_resume(job_description, keywords)
 
-    keywords=check_keywords(job_description)
-    if len(keywords)!=0:
-        score, keywords_missing = match_keywords_with_resume(job_description, keywords)
-
-    # Step 7: Calculate similarity score with job description
+    emit('analysis_progress', {'progress': 80, 'message': 'Calculando similaridade...'})
     similarity_score = calculate_similarity(resume_text, job_description)
 
     restart()
-
-        # If all checks pass
     emit('analysis_result', {
         "result": "Accepted",
         "reason": "Resume meets all criteria",
@@ -401,8 +341,7 @@ def run_analysis(file_path, job_description):
         "keywords_matching": round(score * 100, 2),
         "keywords_missing": keywords_missing
         })
-    
 
-if __name__== '_main_':
-    #app.run(debug=True)
-    socketio.run(app, debug=True) 
+# Iniciar o servidor
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
