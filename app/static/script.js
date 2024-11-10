@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const analiseButton = document.getElementById('analiseButton');
+    const fileInput = document.getElementById('pdfFile'); // Declaração fora do try
+    const jobDescriptionInput = document.getElementById('jobDescription'); // Declaração fora do try
     const loadingMessage = document.getElementById('loading-message');
     const analysisResults = document.getElementById('analysis-results');
     const resultMessage = document.getElementById('result-message');
@@ -30,23 +32,22 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.style.display = 'block';
             return; // Encerra a função
         }
+
+        // Se os dados são válidos, prossegue com a análise
         loadingMessage.style.display = 'block';
         analiseButton.disabled = true;
 
         try {
-            const fileInput = document.getElementById('pdfFile');
-            const jobDescriptionInput = document.getElementById('jobDescription');
-
             const file = fileInput.files[0];
             const jobDescription = jobDescriptionInput.value;
 
             const formData = new FormData();
-            formData.append('file', file); 
+            formData.append('file', file);
             formData.append('job_description', jobDescription);
 
             const response = await fetch('/upload', {
                 method: 'POST',
-                body: formData // Envia o FormData
+                body: formData
             });
 
             if (response.ok) {
@@ -54,29 +55,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
                 displayAnalysisResults(data);
+
                 // Atualizar o botão e adicionar o evento de recarga
-                analiseButton.textContent = 'Iniciar Nova Análise'; 
+                analiseButton.textContent = 'Iniciar Nova Análise';
                 analiseButton.removeEventListener('click', analiseButton.clickHandler);
                 analiseButton.addEventListener('click', () => {
                     window.location.reload();
                 });
+
             } else {
                 console.error('Erro ao analisar o currículo.');
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
+
                 // Atualizar o botão e adicionar o evento de recarga
-                analiseButton.textContent = 'Iniciar Nova Análise'; 
+                analiseButton.textContent = 'Iniciar Nova Análise';
                 analiseButton.removeEventListener('click', analiseButton.clickHandler);
                 analiseButton.addEventListener('click', () => {
                     window.location.reload();
                 });
             }
+
         } catch (error) {
             console.error('Erro durante a requisição:', error);
             loadingMessage.style.display = 'none';
             analiseButton.disabled = false;
+
             // Atualizar o botão e adicionar o evento de recarga
-            analiseButton.textContent = 'Iniciar Nova Análise'; 
+            analiseButton.textContent = 'Iniciar Nova Análise';
             analiseButton.removeEventListener('click', analiseButton.clickHandler);
             analiseButton.addEventListener('click', () => {
                 window.location.reload();
