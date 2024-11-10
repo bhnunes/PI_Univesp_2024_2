@@ -44,15 +44,58 @@ document.addEventListener('DOMContentLoaded', () => {
             analiseButton.disabled = false;
         }
     });
-    
+
+
     function displayAnalysisResults(data) {
         analysisResults.style.display = 'block';
-        resultMessage.textContent = data.reason;
-        similarityScore.textContent = data.similarity_score;
-        keywordsMatching.textContent = data.keywords_matching;
-        keywordsMissing.textContent = data.keywords_missing;
 
-        if (data.errors) {
+        if (data.result === 'Accepted') {
+            // Resultados do CV aprovado
+            resultMessage.textContent = data.reason;
+            resultMessage.classList.add('text-success');
+            resultMessage.classList.remove('text-danger');
+
+            similarityScore.textContent = data.similarity_score;
+            keywordsMatching.textContent = data.keywords_matching;
+            keywordsMissing.textContent = data.keywords_missing;
+
+            analysisResults.classList.add('alert-success');
+            analysisResults.classList.remove('alert-danger');
+
+            // Exibir os campos de 'Percentual de Match Textual', etc.
+            similarityScore.parentElement.style.display = 'block';
+            keywordsMatching.parentElement.style.display = 'block';
+            keywordsMissing.parentElement.style.display = 'block';
+        } else if (data.result === 'Rejected') {
+            // Resultados do CV rejeitado
+            resultMessage.textContent = data.reason;
+            resultMessage.classList.add('text-danger');
+            resultMessage.classList.remove('text-success');
+
+            analysisResults.classList.add('alert-danger');
+            analysisResults.classList.remove('alert-success');
+
+            // Esconder os campos de 'Percentual de Match Textual', etc.
+            similarityScore.parentElement.style.display = 'none';
+            keywordsMatching.parentElement.style.display = 'none';
+            keywordsMissing.parentElement.style.display = 'none';
+        } else if (data.result === 'Attention') {
+            // Resultados do CV com atenção necessária
+            resultMessage.textContent = data.reason;
+            resultMessage.classList.add('text-warning');
+            resultMessage.classList.remove('text-success');
+            resultMessage.classList.remove('text-danger');
+
+            analysisResults.classList.add('alert-warning');
+            analysisResults.classList.remove('alert-success');
+            analysisResults.classList.remove('alert-danger');
+
+            // Exibir os campos de 'Percentual de Match Textual', etc.
+            similarityScore.parentElement.style.display = 'block';
+            keywordsMatching.parentElement.style.display = 'block';
+            keywordsMissing.parentElement.style.display = 'block';
+
+            // Mostrar erros de português
             errorList.innerHTML = ''; 
             for (const error of data.errors) {
                 const listItem = document.createElement('li');

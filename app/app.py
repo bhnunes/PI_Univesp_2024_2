@@ -296,7 +296,7 @@ def analyze_resume(file_path, job_description):
     if len(errors)!=0:
         errors=validateReturnGemini(errors)
         if len(errors)!=0:
-            return {'result': 'Attention', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}
+            return {'result': 'Rejected', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}
 
     keywords = check_keywords(job_description)
     score, keywords_missing = match_keywords_with_resume(job_description, keywords)
