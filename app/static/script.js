@@ -10,8 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const keywordsMissing = document.getElementById('keywords-missing');
     const errorList = document.getElementById('error-list');
 
+    // Define the reload function as a separate variable
+    const reloadFunction = () => {
+        window.location.reload();
+    };
+
+    // Add the click event listener to the button
     analiseButton.addEventListener('click', async () => {
-        // Validação do arquivo
+        // Validate the file input
         if (!fileInput.files[0]) {
             resultMessage.textContent = 'Por favor, selecione um arquivo de currículo (PDF, DOCX ou TXT).';
             resultMessage.classList.add('text-danger');
@@ -19,15 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.classList.add('alert-danger');
             analysisResults.classList.remove('alert-success');
             analysisResults.style.display = 'block';
-            analiseButton.textContent = 'Iniciar Nova Análise'; 
-            analiseButton.removeEventListener('click', analiseButton.clickHandler);
-            analiseButton.addEventListener('click', () => {
-                window.location.reload();
-            });
-            return; // Encerra a função
+            return; // Stop here if no file is selected
         }
 
-        // Validação da descrição da vaga
+        // Validate the job description input
         if (jobDescriptionInput.value.trim() === '') {
             resultMessage.textContent = 'Por favor, insira a descrição da vaga.';
             resultMessage.classList.add('text-danger');
@@ -35,15 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.classList.add('alert-danger');
             analysisResults.classList.remove('alert-success');
             analysisResults.style.display = 'block';
-            analiseButton.textContent = 'Iniciar Nova Análise'; 
-            analiseButton.removeEventListener('click', analiseButton.clickHandler);
-            analiseButton.addEventListener('click', () => {
-                window.location.reload();
-            });
-            return; // Encerra a função
+            return; // Stop here if no job description is provided
         }
 
-        // Se os dados são válidos, prossegue com a análise
+        // If the data is valid, proceed with the analysis
         loadingMessage.style.display = 'block';
         analiseButton.disabled = true;
 
@@ -65,14 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
                 displayAnalysisResults(data);
-
-                // Atualizar o botão e adicionar o evento de recarga
-                analiseButton.textContent = 'Iniciar Nova Análise';
-                analiseButton.removeEventListener('click', analiseButton.clickHandler);
-                analiseButton.addEventListener('click', () => {
-                    window.location.reload();
-                });
-
             } else {
                 console.error('Erro ao analisar o currículo.');
                 loadingMessage.style.display = 'none';
@@ -83,11 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 analysisResults.classList.add('alert-danger');
                 analysisResults.classList.remove('alert-success');
                 analysisResults.style.display = 'block';
-                analiseButton.textContent = 'Iniciar Nova Análise'; 
-                analiseButton.removeEventListener('click', analiseButton.clickHandler);
-                analiseButton.addEventListener('click', () => {
-                    window.location.reload();
-                });
             }
 
         } catch (error) {
@@ -100,11 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.classList.add('alert-danger');
             analysisResults.classList.remove('alert-success');
             analysisResults.style.display = 'block';
-            analiseButton.textContent = 'Iniciar Nova Análise'; 
-            analiseButton.removeEventListener('click', analiseButton.clickHandler);
-            analiseButton.addEventListener('click', () => {
-                window.location.reload();
-            });
         }
     });
 
@@ -168,5 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             errorList.innerHTML = ''; 
         }
+
+        // Update button state and add the reload event listener only after analysis is complete
+        analiseButton.textContent = 'Iniciar Nova Análise';
+        analiseButton.removeEventListener('click', analiseButton.clickHandler); // Remove any previous click handler
+        analiseButton.addEventListener('click', reloadFunction); // Add the reload function as the click handler
     }
 });
