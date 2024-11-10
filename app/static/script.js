@@ -9,6 +9,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorList = document.getElementById('error-list');
 
     analiseButton.addEventListener('click', async () => {
+        // Validação do arquivo
+        if (!fileInput.files[0]) {
+            resultMessage.textContent = 'Por favor, selecione um arquivo de currículo (PDF, DOCX ou TXT).';
+            resultMessage.classList.add('text-danger');
+            resultMessage.classList.remove('text-success');
+            analysisResults.classList.add('alert-danger');
+            analysisResults.classList.remove('alert-success');
+            analysisResults.style.display = 'block';
+            return; // Encerra a função
+        }
+
+        // Validação da descrição da vaga
+        if (jobDescriptionInput.value.trim() === '') {
+            resultMessage.textContent = 'Por favor, insira a descrição da vaga.';
+            resultMessage.classList.add('text-danger');
+            resultMessage.classList.remove('text-success');
+            analysisResults.classList.add('alert-danger');
+            analysisResults.classList.remove('alert-success');
+            analysisResults.style.display = 'block';
+            return; // Encerra a função
+        }
         loadingMessage.style.display = 'block';
         analiseButton.disabled = true;
 
