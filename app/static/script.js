@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const analiseButton = document.getElementById('analiseButton');
-    const fileInput = document.getElementById('pdfFile'); // Declaração fora do try
-    const jobDescriptionInput = document.getElementById('jobDescription'); // Declaração fora do try
+    const fileInput = document.getElementById('pdfFile');
+    const jobDescriptionInput = document.getElementById('jobDescription');
     const loadingMessage = document.getElementById('loading-message');
     const analysisResults = document.getElementById('analysis-results');
     const resultMessage = document.getElementById('result-message');
@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.classList.add('alert-danger');
             analysisResults.classList.remove('alert-success');
             analysisResults.style.display = 'block';
+            analiseButton.textContent = 'Iniciar Nova Análise'; 
+            analiseButton.removeEventListener('click', analiseButton.clickHandler);
+            analiseButton.addEventListener('click', () => {
+                window.location.reload();
+            });
             return; // Encerra a função
         }
 
@@ -30,6 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisResults.classList.add('alert-danger');
             analysisResults.classList.remove('alert-success');
             analysisResults.style.display = 'block';
+            analiseButton.textContent = 'Iniciar Nova Análise'; 
+            analiseButton.removeEventListener('click', analiseButton.clickHandler);
+            analiseButton.addEventListener('click', () => {
+                window.location.reload();
+            });
             return; // Encerra a função
         }
 
@@ -67,9 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Erro ao analisar o currículo.');
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
-
-                // Atualizar o botão e adicionar o evento de recarga
-                analiseButton.textContent = 'Iniciar Nova Análise';
+                resultMessage.textContent = 'Erro ao analisar o currículo. Por favor, tente novamente.';
+                resultMessage.classList.add('text-danger');
+                resultMessage.classList.remove('text-success');
+                analysisResults.classList.add('alert-danger');
+                analysisResults.classList.remove('alert-success');
+                analysisResults.style.display = 'block';
+                analiseButton.textContent = 'Iniciar Nova Análise'; 
                 analiseButton.removeEventListener('click', analiseButton.clickHandler);
                 analiseButton.addEventListener('click', () => {
                     window.location.reload();
@@ -80,9 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro durante a requisição:', error);
             loadingMessage.style.display = 'none';
             analiseButton.disabled = false;
-
-            // Atualizar o botão e adicionar o evento de recarga
-            analiseButton.textContent = 'Iniciar Nova Análise';
+            resultMessage.textContent = 'Erro durante a requisição. Por favor, tente novamente.';
+            resultMessage.classList.add('text-danger');
+            resultMessage.classList.remove('text-success');
+            analysisResults.classList.add('alert-danger');
+            analysisResults.classList.remove('alert-success');
+            analysisResults.style.display = 'block';
+            analiseButton.textContent = 'Iniciar Nova Análise'; 
             analiseButton.removeEventListener('click', analiseButton.clickHandler);
             analiseButton.addEventListener('click', () => {
                 window.location.reload();
