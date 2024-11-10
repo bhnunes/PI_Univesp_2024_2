@@ -33,15 +33,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
                 displayAnalysisResults(data);
+                // Atualizar o botão e adicionar o evento de recarga
+                analiseButton.textContent = 'Iniciar Nova Análise'; 
+                analiseButton.removeEventListener('click', analiseButton.clickHandler);
+                analiseButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
             } else {
                 console.error('Erro ao analisar o currículo.');
                 loadingMessage.style.display = 'none';
                 analiseButton.disabled = false;
+                // Atualizar o botão e adicionar o evento de recarga
+                analiseButton.textContent = 'Iniciar Nova Análise'; 
+                analiseButton.removeEventListener('click', analiseButton.clickHandler);
+                analiseButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
             }
         } catch (error) {
             console.error('Erro durante a requisição:', error);
             loadingMessage.style.display = 'none';
             analiseButton.disabled = false;
+            // Atualizar o botão e adicionar o evento de recarga
+            analiseButton.textContent = 'Iniciar Nova Análise'; 
+            analiseButton.removeEventListener('click', analiseButton.clickHandler);
+            analiseButton.addEventListener('click', () => {
+                window.location.reload();
+            });
         }
     });
 
