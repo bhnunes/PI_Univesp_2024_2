@@ -257,7 +257,7 @@ def upload_resume():
         return jsonify({"error": "File missing"}), 400
     
     file = request.files['file']
-    job_description = request.form.get('job_description') 
+    job_description = request.form.get('job_description')
 
     # Salva o arquivo na pasta temporária
     filename = secure_filename(file.filename)

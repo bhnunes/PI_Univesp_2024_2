@@ -13,9 +13,19 @@ document.addEventListener('DOMContentLoaded', () => {
         analiseButton.disabled = true;
 
         try {
+            const fileInput = document.getElementById('pdfFile');
+            const jobDescriptionInput = document.getElementById('jobDescription');
+
+            const file = fileInput.files[0];
+            const jobDescription = jobDescriptionInput.value;
+
+            const formData = new FormData();
+            formData.append('file', file); 
+            formData.append('job_description', jobDescription);
+
             const response = await fetch('/upload', {
                 method: 'POST',
-                body: new FormData(document.getElementById('uploadForm')) // Usando o ID do formulário
+                body: formData // Envia o FormData
             });
 
             if (response.ok) {
@@ -34,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             analiseButton.disabled = false;
         }
     });
-
+    
     function displayAnalysisResults(data) {
         analysisResults.style.display = 'block';
         resultMessage.textContent = data.reason;
