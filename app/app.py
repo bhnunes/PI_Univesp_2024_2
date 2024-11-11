@@ -12,8 +12,6 @@ import requests
 import json
 from dotenv import load_dotenv
 from docx import Document
-from docx.oxml.shared import OxmlElement
-from docx.oxml.ns import qn
 
 app = Flask(__name__)
 
