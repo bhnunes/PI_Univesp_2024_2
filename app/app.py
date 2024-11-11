@@ -216,7 +216,7 @@ def match_keywords_with_resume(job_description, keywords):
         keywords_missing = ', '.join(list_keywords_missing)
         if len(list_keywords_missing)==1:
             keywords_missing=keywords_missing[:-1]
-    return score, keywords_missing
+    return score, keywords_missing.capitalize()
 
 # Função para calcular a similaridade entre o currículo e a descrição da vaga
 def calculate_similarity(resume_text, job_description):
@@ -281,8 +281,8 @@ def upload_resume():
 def analyze_resume(file_path, job_description):
     resume_text = extract_text(file_path)
 
-    if resume_text is None:
-        return {'result': 'Rejeitado', 'reason': 'Formato inválido de arquivo. Por favor faça o upload de um arquivo PDF, DOCX, ou TXT. Esses arquivos são melhores interpretados pelos softwares de triagem das empresas'}, 400
+    if (resume_text is None) or (resume_text=='\n'):
+        return {'result': 'Rejeitado', 'reason': 'Formato inválido de arquivo. Por favor faça o upload de um arquivo PDF, DOCX, ou TXT. Esses arquivos são melhor interpretados pelos softwares de RH das empresas. Verifique também o modelo do seu CV: Mantenha-o mais limpo e trivial possível! Veja exemplos de modelos de currículo na seção "Modelos"'}, 400
 
     if has_more_than_two_pages(file_path):
         return {'result': 'Rejeitado', 'reason': 'O currículo tem mais de duas páginas! Dê uma resumida nele! Currículos muito grandes são mal vistos pelos recrutadores!'}, 400
