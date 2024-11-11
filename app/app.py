@@ -282,33 +282,33 @@ def analyze_resume(file_path, job_description):
     resume_text = extract_text(file_path)
 
     if resume_text is None:
-        return {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'}, 400
+        return {'result': 'Rejeitado', 'reason': 'Formato inválido de arquivo. Por favor faça o upload de um arquivo PDF, DOCX, ou TXT. Esses arquivos são melhores interpretados pelos softwares de triagem das empresas'}, 400
 
     if has_more_than_two_pages(file_path):
-        return {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'}, 400
+        return {'result': 'Rejeitado', 'reason': 'O currículo tem mais de duas páginas! Dê uma resumida nele! Currículos muito grandes são mal vistos pelos recrutadores!'}, 400
 
     if contains_image(file_path):
-        return {'result': 'Rejected', 'reason': 'Resume contains a photo'}, 400
+        return {'result': 'Rejeitado', 'reason': 'Seu currículo possui uma foto ou imagem! Não há necessidade de fornecer uma imagem sua ao recrutador! E caso exista uma imagem, cuidado: Ela pode não passar pelos softwares de recrutamento!'}, 400
 
     if not is_portuguese(resume_text):
-        return {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'}, 400
+        return {'result': 'Rejeitado', 'reason': 'Seu Currículo não está em português! Infelizmente esse app ainda está disponível apenas para vagas no Brasil!'}, 400
 
     if not check_personalinfo(resume_text):
-        return {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'}, 400
+        return {'result': 'Rejeitado', 'reason': 'O seu currículo não tem um Email, Telefone de Contato, Linkedin ou Github! Sem essas informações você não será contatado!'}, 400
 
     errors = check_portuguese_errors(resume_text)
     if len(errors)!=0:
         errors=validateReturnGemini(errors)
         if len(errors)!=0:
-            return {'result': 'Rejected', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}, 400
+            return {'result': 'Rejeitado', 'reason': 'O seu currículo possui erros de  Português! Corrija-os', 'errors': errors}, 400
 
     keywords = check_keywords(job_description)
     score, keywords_missing = match_keywords_with_resume(job_description, keywords)
     similarity_score = calculate_similarity(resume_text, job_description)
 
     return {
-        "result": "Accepted",
-        "reason": "Resume meets all criteria",
+        "result": "Aprovado",
+        "reason": "O seu currículo foi analisado e passou em todos os testes.",
         "similarity_score": round(similarity_score * 100, 2),
         "contextual_score": round(score * 100, 2),
         "keywords_missing": keywords_missing

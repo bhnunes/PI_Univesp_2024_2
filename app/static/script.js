@@ -5,7 +5,7 @@ async function runAnalysis() {
     const analiseButton = document.getElementById('analiseButton'); // Pega o botão
 
     if (!pdfFile || !jobDescription) {
-        resultDiv.innerHTML = "<p style='color: red;'>Por favor, faça o upload de um PDF e insira a descrição da vaga.</p>";
+        resultDiv.innerHTML = "<p style='color: red;'>⚠️ Por favor, faça o upload de um PDF, TXT ou DOCx e insira a descrição da vaga.</p>";
         return;
     }
 
@@ -28,11 +28,11 @@ async function runAnalysis() {
 
         const result = await response.json();
         if (response.ok) {
-            resultDiv.innerHTML = `<p style="color: green;">${result.result}: ${result.reason}</p>`;
+            resultDiv.innerHTML = `<p style="color: green;">✔️ ${result.result}: ${result.reason}</p>`;
             resultDiv.innerHTML += `<p style="color: green;">Percentual de Match Textual: ${result.similarity_score}%</p>`;
             resultDiv.innerHTML += `<p style="color: green;">Percentual de Match Contextual: ${result.contextual_score}%</p>`;
             if (result.keywords_missing.value !=='') {
-                resultDiv.innerHTML += `<p style="color: green;">Adicione esses termos ao seu CV: ${result.keywords_missing}</p>`;
+                resultDiv.innerHTML += `<p style="color: green;">Adicione esses termos ao seu CV para melhorar seu score: ${result.keywords_missing}</p>`;
             };
 
             // Após a análise, muda o botão para 'Recarregar' e habilita
@@ -42,7 +42,7 @@ async function runAnalysis() {
                 location.reload(); // Recarrega a página quando o botão é clicado
             };
         } else {
-            resultDiv.innerHTML = `<p style="color: red;">${result.result}: ${result.reason}</p>`;
+            resultDiv.innerHTML = `<p style="color: red;">❌ ${result.result}: ${result.reason}</p>`;
             if (result.errors) { // Verifica se há erros
                 resultDiv.innerHTML += "<ul>";
                 for (const error of result.errors) {
@@ -60,7 +60,7 @@ async function runAnalysis() {
             };
         }
     } catch (error) {
-        resultDiv.innerHTML = "<p style='color: red;'>Erro durante a análise. Por favor, tente novamente.</p>";
+        resultDiv.innerHTML = "<p style='color: red;'>❗⚠️ Erro durante a análise. Por favor, tente novamente.</p>";
         analiseButton.textContent = 'Recarregar'; // Reverte o texto do botão
         analiseButton.disabled = false; // Reativa o botão
         analiseButton.onclick = function() {
