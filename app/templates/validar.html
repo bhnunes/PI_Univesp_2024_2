@@ -8,36 +8,16 @@
             <h2 class="text-center mb-4">Analise seu CV Aqui</h2>
             <div class="row">
                 <div class="col-md-6 offset-md-3">
-                    <form id="uploadForm"> <div class="form-group">
+                    <div class="form-group">
                         <input type="file" id="pdfFile" accept="application/pdf" class="form-control-file">
                     </div>
                     <div class="form-group">
                         <textarea id="jobDescription" placeholder="Escreva a vaga de emprego aqui..." class="form-control"></textarea>
                     </div>
-                    <button id="analiseButton" class="btn btn-primary btn-block">Analisar</button>
-                    </form>
-
-                    <div id="result" class="mt-3 text-center">
-                        <div id="status-container" class="mt-3">
-                            <p id="loading-message" style="display: none;">Analisando...</p> 
-                        </div>
-                        
-                        <div id="analysis-results" class="mt-3" style="display: none;">
-                            <div class="alert alert-success" role="alert">
-                                <p><strong>Resultado:</strong> <span id="result-message"></span></p>
-                                <p><strong>Percentual de Match Textual:</strong> <span id="similarity-score"></span>%</p>
-                                <p><strong>Percentual de Match Contextual:</strong> <span id="keywords-matching"></span>%</p>
-                                <p><strong>Termos a Adicionar:</strong> <span id="keywords-missing"></span></p>
-                                <ul id="error-list" class="mt-3"></ul> 
-                            </div>
-                        </div>
-                    </div>
+                    <button id="analiseButton" onclick="runAnalysis()" class="btn btn-primary btn-block">Analisar</button>
+                    <div id="result" class="mt-3 text-center"></div>
                 </div>
             </div>
         </div>
     </section>
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
 {% endblock %}

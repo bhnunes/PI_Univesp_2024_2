@@ -207,7 +207,11 @@ def match_keywords_with_resume(job_description, keywords):
             counter=counter+1
         else:
             list_keywords_missing.append(keyword)
-    score=counter/len(keywords)
+    
+    if len(keywords)==0:
+        score = 0
+    else:
+        score=counter/len(keywords)
     if len(list_keywords_missing)!=0:
         keywords_missing = ', '.join(list_keywords_missing)
         if len(list_keywords_missing)==1:
@@ -271,32 +275,32 @@ def upload_resume():
     restart()
 
     # Retorna o resultado para o cliente
-    return jsonify(result)
+    return jsonify(result[0]), result[1]
 
 # Função para analisar o currículo
 def analyze_resume(file_path, job_description):
     resume_text = extract_text(file_path)
 
     if resume_text is None:
-        return {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'}
+        return {'result': 'Rejected', 'reason': 'Invalid file format. Please upload a PDF, DOCX, or TXT file.'}, 400
 
     if has_more_than_two_pages(file_path):
-        return {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'}
+        return {'result': 'Rejected', 'reason': 'Resume has more than 2 pages'}, 400
 
     if contains_image(file_path):
-        return {'result': 'Rejected', 'reason': 'Resume contains a photo'}
+        return {'result': 'Rejected', 'reason': 'Resume contains a photo'}, 400
 
     if not is_portuguese(resume_text):
-        return {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'}
+        return {'result': 'Rejected', 'reason': 'Resume is not in Portuguese'}, 400
 
     if not check_personalinfo(resume_text):
-        return {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'}
+        return {'result': 'Rejected', 'reason': 'Resume Has no Email or Phone Number or Linkedin or Github for contact'}, 400
 
     errors = check_portuguese_errors(resume_text)
     if len(errors)!=0:
         errors=validateReturnGemini(errors)
         if len(errors)!=0:
-            return {'result': 'Rejected', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}
+            return {'result': 'Rejected', 'reason': 'Resume contains Portuguese grammar errors', 'errors': errors}, 400
 
     keywords = check_keywords(job_description)
     score, keywords_missing = match_keywords_with_resume(job_description, keywords)
@@ -306,9 +310,9 @@ def analyze_resume(file_path, job_description):
         "result": "Accepted",
         "reason": "Resume meets all criteria",
         "similarity_score": round(similarity_score * 100, 2),
-        "keywords_matching": round(score * 100, 2),
+        "contextual_score": round(score * 100, 2),
         "keywords_missing": keywords_missing
-    }
+    }, 200
 
 # Iniciar o servidor
 if __name__ == '__main__':
