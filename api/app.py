@@ -17,8 +17,9 @@ app = Flask(__name__)
 
 load_dotenv()
 
-api_key = os.getenv('API_KEY')
-APY_KEY = api_key
+APY_KEY =os.getenv('API_KEY')
+URL_AWS=os.getenv('AWS_URL')
+GEMINI_URL = os.getenv('GEMINI_URL')
 
 # Configura a pasta temporária
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
@@ -128,7 +129,7 @@ def check_personalinfo(text):
 # Função para verificar erros de português
 def check_portuguese_errors(text):
     text=str(text).upper()
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    url = str(GEMINI_URL)
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [
@@ -169,7 +170,7 @@ def validateReturnGemini(errors):
 # Função para verificar palavras-chave
 def check_keywords(job_description):
     job_description=str(job_description).upper()
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    url = str(GEMINI_URL)
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [
@@ -186,9 +187,9 @@ def check_keywords(job_description):
             result = json.loads(results)
             return result["palavras_chaves"]
         except (KeyError, IndexError, json.JSONDecodeError):
-            return []
+            return 'N/A'
     else:
-        return []
+        return 'N/A'
 
 # Função para comparar palavras-chave do currículo com a descrição da vaga
 def match_keywords_with_resume(job_description, keywords):
@@ -218,10 +219,30 @@ def match_keywords_with_resume(job_description, keywords):
 
 # Função para calcular a similaridade entre o currículo e a descrição da vaga
 def calculate_similarity(resume_text, job_description):
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
-    similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    return similarity_score
+
+    url = str(URL_AWS) + "/SimilarityCheck"
+
+    payload = json.dumps({
+    "resume_text": str(resume_text),
+    "job_description": str(job_description)
+    })
+
+    headers = {
+    'Content-Type': 'application/json'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+
+    if response.status_code == 200:
+        try:
+            result = response.json()
+            results = result["body"]
+            result=json.loads(results)
+            return result["similarity_score"]
+        except (KeyError, IndexError, json.JSONDecodeError):
+            return []
+    else:
+        return []
 
 # Rota principal
 @app.route('/')
