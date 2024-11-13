@@ -10,6 +10,7 @@ import requests
 import json
 from dotenv import load_dotenv
 from docx import Document
+import tempfile
 
 app = Flask(__name__)
 
@@ -19,13 +20,12 @@ APY_KEY =os.getenv('API_KEY')
 URL_AWS=os.getenv('AWS_URL')
 GEMINI_URL = os.getenv('GEMINI_URL')
 
-# Configura a pasta temporária
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Configura a pasta temporária (using tempfile)
+app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp()
 
 # Função para reiniciar a pasta de uploads
 def restart():
-    uploads_path = os.path.join(app.root_path, 'uploads')
+    uploads_path = app.config['UPLOAD_FOLDER']
     if os.path.exists(uploads_path):
         shutil.rmtree(uploads_path)
         os.makedirs(uploads_path, exist_ok=True)
