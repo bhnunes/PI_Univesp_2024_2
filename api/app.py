@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import fitz  # PyMuPDF for PDF handling
 from langdetect import detect
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
